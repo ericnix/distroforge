@@ -140,9 +140,10 @@ class CalamaresInstaller(Installer):
     @staticmethod
     def _settings(profile: Profile) -> dict[str, Any]:
         return {
-            # Sem modules-search: o Calamares usa o caminho compilado
-            # (multiarch, /usr/lib/x86_64-linux-gnu/calamares/modules).
-            # Declarar a lista substitui esse caminho e quebra o carregamento.
+            # "local" resolve para <libdir>/calamares/modules, onde o Debian
+            # instala os módulos (multiarch). Sem esta chave a lista fica vazia
+            # e nenhum módulo é encontrado.
+            "modules-search": ["local"],
             "instances": [],
             "sequence": [
                 {"show": list(SHOW_SEQUENCE)},
