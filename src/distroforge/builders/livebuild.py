@@ -26,6 +26,11 @@ LIVE_PACKAGES = [
     "efibootmgr",
     "os-prober",
     "sudo",
+    # o sistema instalado precisa destes para o bootloader do Calamares
+    "grub-pc",
+    "grub-efi-amd64",
+    "grub-efi-amd64-signed",
+    "shim-signed",
     # rede e firmware (netinstall sem Wi-Fi é inútil)
     "network-manager",
     "firmware-iwlwifi",
@@ -59,7 +64,7 @@ lb config noauto \\
   --bootloaders "syslinux,grub-efi" \\
   --debian-installer none \\
   --memtest none \\
-  --apt-indices false \\
+  --apt-indices true \\
   --firmware-chroot true \\
   --bootappend-live "boot=live components quiet splash autologin console=ttyS0,115200 systemd.journald.forward_to_console=1" \\
   --iso-application "{application}" \\
