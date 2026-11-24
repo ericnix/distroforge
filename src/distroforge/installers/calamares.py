@@ -52,6 +52,8 @@ EXEC_SEQUENCE = [
     "services-systemd",
     "netinstall",
     "packages",
+    "initramfscfg",
+    "initramfs",
     "bootloader",
     "umount",
 ]
