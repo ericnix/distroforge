@@ -52,7 +52,8 @@ lb config noauto \\
   --memtest none \\
   --apt-indices false \\
   --firmware-chroot true \\
-  --bootappend-live "boot=live components quiet splash" \\
+  --bootappend-live "boot=live components quiet splash autologin" \\
+  --bootloader-timeout 5 \\
   --iso-application "{application}" \\
   --iso-publisher "{publisher}" \\
   --iso-volume "{volume}" \\
@@ -94,15 +95,18 @@ ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
 EOF
 
 # ao logar na tty1, sobe o X; o .xinitrc abre o instalador
-cat > /etc/skel/.bash_profile <<'EOF'
+cat >> /etc/skel/.bash_profile <<'EOF'
+
+# DistroForge: abre o instalador na sessão live
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
   exec startx
 fi
 EOF
 
+# Calamares precisa de root; o usuário live tem sudo sem senha
 cat > /etc/skel/.xinitrc <<'EOF'
 #!/bin/sh
-exec calamares
+exec sudo -E calamares
 EOF
 chmod +x /etc/skel/.xinitrc
 """

@@ -44,6 +44,7 @@ def test_gera_arvore_live_build(tmp_path, orchestrator: Orchestrator, profile: P
     config = (root / "auto" / "config").read_text(encoding="utf-8")
     assert "--distribution trixie" in config
     assert "--binary-images iso-hybrid" in config
+    assert "--bootloader-timeout 5" in config
 
 
 def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Profile):
