@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..catalog import Catalog, Resolution
 from ..container import container_command, run
+from ..labels import iso_volume_label
 from ..profile import Profile
 from .base import Builder, BuildResult
 
@@ -123,7 +124,7 @@ class ArchisoBuilder(Builder):
         target = workdir / "profile"
         written: list[Path] = []
 
-        label = "".join(ch for ch in profile.hostname.upper() if ch.isalnum())[:11] or "DISTROFORGE"
+        label = iso_volume_label(profile.hostname, max_len=11)
 
         written.append(
             self._write(

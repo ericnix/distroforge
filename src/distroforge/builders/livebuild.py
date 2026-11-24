@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ..catalog import Catalog, Resolution
 from ..container import container_command, run
+from ..labels import iso_volume_label
 from ..profile import Profile
 from .base import Builder, BuildResult
 
@@ -130,7 +131,7 @@ class LiveBuildBuilder(Builder):
                     arch=profile.arch,
                     application=profile.name,
                     publisher=f"DistroForge — {profile.name}",
-                    volume=(profile.hostname.upper()[:30] or "DISTROFORGE"),
+                    volume=iso_volume_label(profile.hostname),
                 ),
                 executable=True,
             )
