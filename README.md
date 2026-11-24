@@ -50,6 +50,16 @@ na página roda na CLI sem conversão.
 | `generate` | escreve `auto/config`, package lists, overlay do Calamares e `build.sh` |
 | `build` | gera e roda o `lb build` em container (Debian); Arch via `mkarchiso` |
 
+### Testar a ISO no QEMU
+
+```bash
+python3 scripts/qemu-test.py out/minha-distro-1.0-amd64.iso
+```
+
+Sobe a VM sem display (KVM se disponível), pressiona Enter no menu e captura
+telas do boot em `shots/boot*.png`. O progresso da fase 0 está em
+[`docs/FASE0.md`](docs/FASE0.md).
+
 Fedora e openSUSE ainda param com mensagem clara: os adapters Anaconda e Agama
 entram nas fases 5 e 6.
 
