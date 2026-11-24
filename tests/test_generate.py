@@ -105,7 +105,8 @@ def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile)
         root
         / "config"
         / "includes.chroot"
-        / "etc"
+        / "usr"
+        / "share"
         / "calamares"
         / "branding"
         / profile.hostname

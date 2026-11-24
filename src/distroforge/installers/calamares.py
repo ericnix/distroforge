@@ -80,7 +80,8 @@ class CalamaresInstaller(Installer):
     ) -> list[Path]:
         calamares = overlay / "etc" / "calamares"
         modules = calamares / "modules"
-        branding = calamares / "branding" / profile.hostname
+        # Calamares procura branding em /usr/share/calamares/branding, não em /etc.
+        branding = overlay / "usr" / "share" / "calamares" / "branding" / profile.hostname
 
         base_id = resolution.base.id
         unpack_source = UNPACK_SOURCES.get(base_id)
