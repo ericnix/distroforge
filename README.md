@@ -5,18 +5,53 @@ programas, e gere uma ISO **netinstall** com instalador. O sistema instalado atu
 dos repositórios da própria base — é remaster com instalador, não uma distro
 independente.
 
-> **Status:** o site (este repositório) está pronto e publicado em
-> **https://distroforge-site.pages.dev**. O aplicativo desktop (PySide6) e o motor de build
-> estão em planejamento — veja [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** o site está publicado em **https://distroforge-site.pages.dev**. O núcleo do
+> construtor e a CLI estão prontos (fase 1); o build de ISO está em validação (fase 0).
+> Veja [`docs/PLAN.md`](docs/PLAN.md).
 
 ## O que tem aqui
 
 - `site/` — página interativa (Astro + Svelte 5 + Tailwind 4), publicada no Cloudflare Pages.
+- `src/distroforge/` — núcleo do construtor: perfil neutro, catálogo, adapters e CLI.
+- `tests/` — testes do núcleo (28 casos).
 - `catalog/` — fonte única de verdade: bases, desktops, window managers e apps, com o
   nome do pacote em cada distro.
 - `site/scripts/export_catalog.mjs` — converte o catálogo YAML em JSON para o site
   (e, depois, para o app). Só depende de Node.
 - `docs/PLAN.md` — plano completo: arquitetura, fases, riscos e backlog.
+
+## App / CLI
+
+```bash
+uv venv --python 3.13
+uv pip install -e ".[dev]"
+.venv/bin/pytest
+
+.venv/bin/distroforge catalog --base debian
+.venv/bin/distroforge init --name "Minha Distro" --base debian --desktop kde --out profile.yaml
+.venv/bin/distroforge plan profile.yaml
+.venv/bin/distroforge generate profile.yaml --out build   # árvore + /etc/calamares
+.venv/bin/distroforge build profile.yaml --out out --dry-run
+```
+
+`build` roda dentro de um container (`podman`/`docker`) da base escolhida, com
+`--privileged` porque `live-build` e `mkarchiso` precisam de loop devices.
+
+O perfil é o mesmo `profile.yaml` que o site gera no navegador: um arquivo feito
+na página roda na CLI sem conversão.
+
+### O que a CLI já faz
+
+| Comando | Estado |
+|---|---|
+| `catalog` | lista bases, desktops, WMs e apps do catálogo |
+| `init` | cria um perfil válido com os apps recomendados da base |
+| `validate` / `plan` | valida e mostra pacotes, tamanhos e avisos |
+| `generate` | escreve `auto/config`, package lists, overlay do Calamares e `build.sh` |
+| `build` | gera e roda o `lb build` em container (Debian); Arch via `mkarchiso` |
+
+Fedora e openSUSE ainda param com mensagem clara: os adapters Anaconda e Agama
+entram nas fases 5 e 6.
 
 ## Rodar localmente
 
