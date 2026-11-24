@@ -211,6 +211,9 @@ class CalamaresInstaller(Installer):
     def _branding(profile: Profile) -> dict[str, Any]:
         return {
             "componentName": profile.hostname,
+            # Calamares 3.3 exige a chave slideshow (QML). O arquivo é copiado
+            # do tema padrão no hook de build.
+            "slideshow": "show.qml",
             "strings": {
                 "productName": profile.product_name,
                 "shortProductName": profile.name,
