@@ -21,7 +21,9 @@ import time
 from pathlib import Path
 
 
-def build_command(iso: Path, sock: Path, memory: int, serial: Path) -> list[str]:
+def build_command(
+    iso: Path, sock: Path, memory: int, serial: Path, disk: Path | None = None
+) -> list[str]:
     command = [
         "qemu-system-x86_64",
         "-m",
@@ -42,6 +44,8 @@ def build_command(iso: Path, sock: Path, memory: int, serial: Path) -> list[str]
         f"file:{serial}",
         "-no-reboot",
     ]
+    if disk is not None:
+        command[-1:-1] = ["-drive", f"file={disk},if=virtio,format=qcow2"]
     if Path("/dev/kvm").exists():
         command[1:1] = ["-enable-kvm", "-cpu", "host"]
     return command
@@ -83,6 +87,10 @@ def main() -> int:
     parser.add_argument("--memory", type=int, default=3072)
     parser.add_argument("--seconds", type=int, default=150, help="duração total do teste")
     parser.add_argument("--keep-ppm", action="store_true")
+    parser.add_argument(
+        "--disk-size", default="20G", help="tamanho do disco virtual (use '' para não anexar)"
+    )
+    parser.add_argument("--keep-disk", action="store_true", help="reaproveita o disco existente")
     args = parser.parse_args()
 
     iso = args.iso.expanduser().resolve()
@@ -97,9 +105,22 @@ def main() -> int:
     if sock.exists():
         sock.unlink()
 
+    disk: Path | None = None
+    if args.disk_size:
+        disk = shots / "disk.qcow2"
+        if disk.exists() and not args.keep_disk:
+            disk.unlink()
+        if not disk.exists():
+            subprocess.run(
+                ["qemu-img", "create", "-f", "qcow2", str(disk), args.disk_size],
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
+        print(f"disco: {disk} ({args.disk_size})", flush=True)
+
     print(f"subindo {iso.name} …", flush=True)
     process = subprocess.Popen(
-        build_command(iso, sock, args.memory, serial),
+        build_command(iso, sock, args.memory, serial, disk),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.STDOUT,
     )
