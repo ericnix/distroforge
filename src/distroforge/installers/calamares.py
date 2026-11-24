@@ -164,12 +164,6 @@ class CalamaresInstaller(Installer):
                 DESKTOP_TEMPLATE.format(product=profile.product_name),
             )
         )
-        written.append(
-            self._write(
-                overlay / "etc" / "skel" / "Desktop" / "install-distro.desktop",
-                DESKTOP_TEMPLATE.format(product=profile.product_name),
-            )
-        )
         return written
 
     # ------------------------------------------------------------- seções

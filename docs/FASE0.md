@@ -3,9 +3,8 @@
 Objetivo: provar que uma ISO mínima gerada pelo DistroForge boota, sobe o
 Calamares e instala o sistema baixando os pacotes do repositório da base.
 
-> Status: **instalação em validação**. Boot, live-config, Calamares e todas as
-> telas até o netinstall já foram exercitados no QEMU; falta confirmar o fim da
-> instalação e o primeiro boot do sistema no disco.
+> Status: **validado**. A ISO gera o sistema, instala pelo Calamares baixando
+> o desktop do repositório e o disco instalado boota no KDE Plasma.
 
 ## Perfil usado
 
@@ -43,7 +42,16 @@ distroforge build profile.yaml --out out
 | Usuário | cria conta, valida senha |
 | Desktop | packagechooser lista os 10 desktops/WMs da base Debian |
 | Programas | netinstall com grupos, tamanhos e apps pré-marcados |
-| Instalação | **em validação** (unpackfs + apt + bootloader) |
+| Instalação | **ok**: 100%, ~11 GB gravados, sem erros |
+| Primeiro boot | **ok**: SDDM com o usuário criado |
+| Desktop | **ok**: KDE Plasma (X11) com painel e atalho do instalador |
+
+### Observação sobre Wayland
+
+No QEMU com `-vga std` a sessão **Plasma (Wayland)** fica com a tela preta
+(sem GPU/llvmpipe funcional). Selecionando **Plasma (X11)** no SDDM, o desktop
+sobe normalmente. Em hardware real o Wayland deve funcionar; é uma limitação do
+ambiente de teste, não da instalação.
 
 ## Correções encontradas no caminho
 
@@ -86,6 +94,13 @@ distroforge build profile.yaml --out out
     `users`, `bootloader`, `packages`, `welcome`, `unpackfs` etc. é o
     `calamares-settings-debian`; sem ele o instalador não tem como particionar
     nem criar usuário.
+13. **Ajustes do live vazavam para o sistema instalado.** O `sudoers` sem senha,
+    o atalho "Instalar Minha Distro" e o autostart do Calamares ficavam no
+    rootfs e apareciam na distro instalada. Agora tudo é criado em tempo de boot
+    por um hook do `live-config` (`/lib/live/config/9999-distroforge`), que só
+    roda em `boot=live`.
+14. **Disco de teste em tmpfs.** O `qcow2` no `/tmp` (7,5 GB) encheu durante a
+    instalação e o apt falhou com código 100. O teste agora usa `/home`.
 
 ## Como repetir o teste
 

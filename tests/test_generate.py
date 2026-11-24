@@ -146,6 +146,24 @@ def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     assert "calamares" in packages
 
 
+def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
+    tmp_path, orchestrator: Orchestrator, profile: Profile
+):
+    root = orchestrator.generate(profile, tmp_path).workdir
+    includes = root / "config" / "includes.chroot"
+
+    hook = includes / "lib" / "live" / "config" / "9999-distroforge"
+    assert hook.is_file()
+    assert hook.stat().st_mode & 0o111, "o hook do live-config precisa ser executável"
+
+    # estes só podem existir em tempo de boot do live
+    assert not (includes / "etc" / "sudoers.d" / "90-distroforge").exists()
+    assert not (includes / "etc" / "skel" / "Desktop" / "install-distro.desktop").exists()
+
+    # o atalho do menu é inofensivo e continua no overlay
+    assert (includes / "usr" / "share" / "applications" / "install-distro.desktop").is_file()
+
+
 def test_build_dry_run_nao_exige_runtime(tmp_path, orchestrator: Orchestrator, profile: Profile):
     result = orchestrator.build(profile, tmp_path / "out", dry_run=True)
     assert result.dry_run is True

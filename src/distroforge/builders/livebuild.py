@@ -99,18 +99,11 @@ ls -lh /build/*.iso
 """
 
 SESSION_HOOK = """#!/bin/sh
-# gerado pelo DistroForge — autostart do Calamares na sessão live (PoC)
+# gerado pelo DistroForge — roda a cada boot do live via live-config.
+# Tudo aqui é exclusivo da sessão live: nada é criado no sistema instalado.
 set -e
 
-# 1) autologin na tty1
-install -d /etc/systemd/system/getty@tty1.service.d
-cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
-EOF
-
-# 2) sudo sem senha (não depende do live-config)
+# 1) sudo sem senha para o usuário live
 cat > /etc/sudoers.d/90-distroforge <<'EOF'
 Defaults env_keep += "DISPLAY XAUTHORITY XDG_RUNTIME_DIR"
 user ALL=(ALL) NOPASSWD: SETENV: ALL
@@ -118,17 +111,24 @@ EOF
 chown root:root /etc/sudoers.d/90-distroforge
 chmod 0440 /etc/sudoers.d/90-distroforge
 
-# 3) X pode rodar como usuário comum mesmo sem seat do logind
+# 2) autologin na tty1
+install -d /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
+EOF
+
+# 3) X confiável mesmo sem seat do logind
 cat > /etc/X11/Xwrapper.config <<'EOF'
 allowed_users=anybody
 needs_root_rights=yes
 EOF
 
-# 3b) cliente X que abre o instalador como root
+# 4) cliente X que abre o instalador como root
 cat > /usr/local/bin/distroforge-session <<'EOF'
 #!/bin/sh
 export QT_QPA_PLATFORM=xcb
-# a saída vai para o console serial (root pode abrir /dev/ttyS0)
 exec sudo -E sh -c '
   echo "== distroforge: iniciando calamares ==" >/dev/ttyS0
   calamares -d >>/dev/ttyS0 2>&1
@@ -137,7 +137,7 @@ exec sudo -E sh -c '
 EOF
 chmod 0755 /usr/local/bin/distroforge-session
 
-# 4) startx em qualquer shell de login (bash, dash, zsh) + trava de 1 tentativa
+# 5) startx em qualquer shell de login, com trava de uma tentativa
 cat > /etc/profile.d/zz-distroforge-startx.sh <<'EOF'
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ "$(id -u)" -ne 0 ]; then
   if [ -e /tmp/distroforge-x-tentado ]; then
@@ -154,20 +154,11 @@ fi
 EOF
 chmod 0644 /etc/profile.d/zz-distroforge-startx.sh
 
-# 5) atalhos para uma sessão interativa
-cat >> /etc/skel/.bash_profile <<'EOF'
-
-# DistroForge: abre o instalador na sessão live
-if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-  exec startx
+# 6) atalho na área de trabalho do usuário live
+if [ -d /home/user/Desktop ] && [ -f /usr/share/applications/install-distro.desktop ]; then
+  cp /usr/share/applications/install-distro.desktop /home/user/Desktop/ || true
+  chown user:user /home/user/Desktop/install-distro.desktop 2>/dev/null || true
 fi
-EOF
-
-cat > /etc/skel/.xinitrc <<'EOF'
-#!/bin/sh
-exec sudo -E calamares
-EOF
-chmod +x /etc/skel/.xinitrc
 """
 
 
@@ -225,8 +216,8 @@ class LiveBuildBuilder(Builder):
 
         written.append(
             self._write(
-                workdir / "config" / "hooks" / "live" / "0100-distroforge-session.chroot",
-                SESSION_HOOK.replace("__SLUG__", profile.hostname),
+                includes / "lib" / "live" / "config" / "9999-distroforge",
+                SESSION_HOOK,
                 executable=True,
             )
         )
