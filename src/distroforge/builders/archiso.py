@@ -1,4 +1,9 @@
-"""Builder Arch Linux usando ``archiso``."""
+"""Builder Arch Linux usando ``archiso``.
+
+O Calamares saiu dos repositórios oficiais do Arch: o build compila o pacote
+do AUR e o publica num repositório local, que o ``mkarchiso`` consome ao montar
+o airootfs.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +24,6 @@ PACKAGES = [
     "linux-firmware",
     "mkinitcpio",
     "systemd",
-    "sudo",
     "networkmanager",
     "iwd",
     "calamares",
@@ -36,6 +40,7 @@ PACKAGES = [
     "xorg-xinit",
     "xterm",
     "openbox",
+    "dbus",
 ]
 
 PROFILEDEF = """\
@@ -68,13 +73,14 @@ CheckSpace
 SigLevel = Required DatabaseOptional
 LocalFileSigLevel = Optional
 
+[distroforge]
+SigLevel = Optional TrustAll
+Server = file:///build/localrepo
+
 [core]
 Include = /etc/pacman.d/mirrorlist
 
 [extra]
-Include = /etc/pacman.d/mirrorlist
-
-[multilib]
 Include = /etc/pacman.d/mirrorlist
 """
 
@@ -83,8 +89,29 @@ BUILD_SCRIPT = """\
 # gerado pelo DistroForge — roda dentro do container Arch
 set -euo pipefail
 
-echo "==> instalando archiso"
-pacman -Sy --noconfirm --needed archiso
+echo "==> preparando chaves e ferramentas"
+pacman-key --init
+pacman-key --populate archlinux
+pacman -Sy --noconfirm --needed base-devel git archiso
+
+echo "==> compilando calamares do AUR"
+id -u builder >/dev/null 2>&1 || useradd -m builder
+echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+rm -rf /build/pkg
+mkdir -p /build/pkg
+chown builder:builder /build/pkg
+su builder -c '
+  set -e
+  cd /build/pkg
+  git clone --depth 1 https://aur.archlinux.org/calamares.git
+  cd calamares
+  makepkg -s --noconfirm
+'
+
+echo "==> publicando repositório local"
+mkdir -p /build/localrepo
+cp /build/pkg/calamares/*.pkg.tar.* /build/localrepo/
+repo-add /build/localrepo/distroforge.db.tar.gz /build/localrepo/*.pkg.tar.*
 
 echo "==> mkarchiso"
 mkarchiso -v -w /build/work -o /build/out /build/profile
@@ -93,25 +120,54 @@ echo "==> pronto"
 ls -lh /build/out/*.iso
 """
 
-SESSION_HOOK = """\
+# Sessão live: o archiso autologa como root. O instalador sobe direto no X,
+# sem sudo. O guarda /run/archiso evita que isso rode no sistema instalado.
+LIVE_SERVICE = """\
+[Unit]
+Description=DistroForge live session
+ConditionPathExists=/run/archiso
+After=systemd-user-sessions.service
+Before=getty@tty1.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/distroforge-live-setup
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+LIVE_SETUP = """\
 #!/bin/sh
-# gerado pelo DistroForge — autostart do Calamares na sessão live (PoC)
+# gerado pelo DistroForge — roda apenas no live (ConditionPathExists=/run/archiso)
 set -e
-cat > /etc/skel/.bash_profile <<'EOF'
-if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
-  exec startx
+
+install -d /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+EOF
+
+cat > /etc/profile.d/zz-distroforge-startx.sh <<'EOF'
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ -e /run/archiso ]; then
+  if [ -e /tmp/distroforge-x-tentado ]; then
+    echo "DistroForge: o instalador já falhou uma vez; shell liberado para debug."
+  else
+    : > /tmp/distroforge-x-tentado
+    echo "DistroForge: iniciando o instalador..."
+    exec xinit /usr/bin/calamares -- :0 vt1
+  fi
 fi
 EOF
-cat > /etc/skel/.xinitrc <<'EOF'
-#!/bin/sh
-exec calamares
-EOF
-chmod +x /etc/skel/.xinitrc
+chmod 0644 /etc/profile.d/zz-distroforge-startx.sh
 """
 
 
 class ArchisoBuilder(Builder):
     name = "archiso"
+    image = DEFAULT_IMAGE
 
     def prepare(
         self,
@@ -149,11 +205,31 @@ class ArchisoBuilder(Builder):
 
         written.append(
             self._write(
-                target / "airootfs" / "etc" / "local.d" / "distroforge-session.sh",
-                SESSION_HOOK,
+                airootfs / "etc" / "systemd" / "system" / "distroforge-live.service",
+                LIVE_SERVICE,
+            )
+        )
+        written.append(
+            self._write(
+                airootfs / "usr" / "local" / "bin" / "distroforge-live-setup",
+                LIVE_SETUP,
                 executable=True,
             )
         )
+        unit_link = (
+            airootfs
+            / "etc"
+            / "systemd"
+            / "system"
+            / "multi-user.target.wants"
+            / "distroforge-live.service"
+        )
+        unit_link.parent.mkdir(parents=True, exist_ok=True)
+        if unit_link.exists() or unit_link.is_symlink():
+            unit_link.unlink()
+        unit_link.symlink_to("/etc/systemd/system/distroforge-live.service")
+        written.append(unit_link)
+
         written.append(self._write(workdir / "build.sh", BUILD_SCRIPT, executable=True))
         return written
 

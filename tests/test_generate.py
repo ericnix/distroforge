@@ -141,6 +141,24 @@ def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     assert (root / "profile" / "profiledef.sh").is_file()
     assert (root / "profile" / "packages.x86_64").is_file()
     assert (root / "profile" / "airootfs" / "etc" / "calamares" / "settings.conf").is_file()
+    assert (
+        root / "profile" / "airootfs" / "etc" / "systemd" / "system" / "distroforge-live.service"
+    ).is_file()
+    link = (
+        root
+        / "profile"
+        / "airootfs"
+        / "etc"
+        / "systemd"
+        / "system"
+        / "multi-user.target.wants"
+        / "distroforge-live.service"
+    )
+    assert link.is_symlink()
+    assert link.readlink() == Path("/etc/systemd/system/distroforge-live.service")
+
+    pacman = (root / "profile" / "pacman.conf").read_text(encoding="utf-8")
+    assert "file:///build/localrepo" in pacman
 
     packages = (root / "profile" / "packages.x86_64").read_text(encoding="utf-8")
     assert "calamares" in packages
