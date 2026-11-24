@@ -116,6 +116,12 @@ def main() -> int:
                 check=True,
                 stdout=subprocess.DEVNULL,
             )
+        if str(disk).startswith("/tmp"):
+            print(
+                "aviso: /tmp costuma ser tmpfs; a instalação pode encher a RAM. "
+                "use --shots-dir fora de /tmp.",
+                flush=True,
+            )
         print(f"disco: {disk} ({args.disk_size})", flush=True)
 
     print(f"subindo {iso.name} …", flush=True)
