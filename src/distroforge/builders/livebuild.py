@@ -20,6 +20,9 @@ DEFAULT_IMAGE = "debian:trixie-slim"
 LIVE_PACKAGES = [
     # instalador e ferramentas
     "calamares",
+    # configs de módulo (users, bootloader, packages, unpackfs, welcome...);
+    # sobrescrevemos settings/packagechooser/netinstall/branding no overlay
+    "calamares-settings-debian",
     "squashfs-tools",
     "rsync",
     "parted",
