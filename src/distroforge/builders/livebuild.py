@@ -36,11 +36,8 @@ LIVE_PACKAGES = [
     "grub-efi-amd64-bin",
     "grub-efi-amd64-signed",
     "shim-signed",
-    # rede e firmware (netinstall sem Wi-Fi é inútil)
+    # rede (o firmware vem por base, em FIRMWARE)
     "network-manager",
-    "firmware-iwlwifi",
-    "firmware-realtek",
-    "firmware-atheros",
     # sessão gráfica mínima para o Calamares
     "xserver-xorg",
     "xserver-xorg-legacy",
@@ -58,6 +55,16 @@ prompt 0
 timeout 50
 """
 
+FIRMWARE = {
+    "debian": ["firmware-iwlwifi", "firmware-realtek", "firmware-atheros"],
+    "ubuntu": ["linux-firmware"],
+}
+
+ARCHIVE_AREAS = {
+    "debian": "main contrib non-free non-free-firmware",
+    "ubuntu": "main restricted universe multiverse",
+}
+
 MIRRORS = {
     "debian": "http://deb.debian.org/debian/",
     "ubuntu": "http://archive.ubuntu.com/ubuntu/",
@@ -73,7 +80,7 @@ lb config noauto \\
   --mirror-chroot {mirror} \\
   --architectures {arch} \\
   --binary-images iso-hybrid \\
-  --archive-areas "main contrib non-free non-free-firmware" \\
+  --archive-areas "{areas}" \\
   --bootloaders "syslinux,grub-efi" \\
   --debian-installer none \\
   --memtest none \\
@@ -192,6 +199,7 @@ class LiveBuildBuilder(Builder):
                 workdir / "auto" / "config",
                 AUTO_CONFIG.format(
                     mode=mode,
+                    areas=ARCHIVE_AREAS.get(base.id, ARCHIVE_AREAS["debian"]),
                     distribution=distribution,
                     mirror=mirror,
                     arch=profile.arch,
@@ -210,7 +218,7 @@ class LiveBuildBuilder(Builder):
             )
         )
 
-        packages = list(LIVE_PACKAGES)
+        packages = list(LIVE_PACKAGES) + FIRMWARE.get(base.id, FIRMWARE["debian"])
         written.append(
             self._write(
                 workdir / "config" / "package-lists" / "00-distroforge.list.chroot",

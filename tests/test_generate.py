@@ -174,6 +174,13 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "--mode ubuntu" in config
     assert "--distribution noble" in config
     assert "archive.ubuntu.com" in config
+    assert "main restricted universe multiverse" in config
+
+    packages = (
+        root / "config" / "package-lists" / "00-distroforge.list.chroot"
+    ).read_text(encoding="utf-8")
+    assert "linux-firmware" in packages
+    assert "firmware-iwlwifi" not in packages
 
     build = (root / "build.sh").read_text(encoding="utf-8")
     assert "ubuntu-keyring" in build
