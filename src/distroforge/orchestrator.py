@@ -150,11 +150,14 @@ class Orchestrator:
         *,
         force: bool = False,
         dry_run: bool = False,
+        on_line=None,
     ) -> BuildResult:
         generated = self.generate(profile, out_dir, force=force)
         builder = BUILDERS[generated.plan.builder]()
 
-        result = builder.build(profile, generated.workdir, dry_run=dry_run)
+        result = builder.build(
+            profile, generated.workdir, dry_run=dry_run, on_line=on_line
+        )
         if dry_run:
             return result
 

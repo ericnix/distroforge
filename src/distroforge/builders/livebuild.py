@@ -230,6 +230,7 @@ class LiveBuildBuilder(Builder):
         workdir: Path,
         *,
         dry_run: bool = False,
+        on_line=None,
     ) -> BuildResult:
         command = container_command(DEFAULT_IMAGE, workdir, "build.sh")
         log = workdir / "build.log"
@@ -237,7 +238,7 @@ class LiveBuildBuilder(Builder):
         if dry_run:
             return BuildResult(workdir=workdir, command=command, dry_run=True)
 
-        code = run(command, log)
+        code = run(command, log, on_line=on_line)
         iso = workdir / f"live-image-{profile.arch}.hybrid.iso"
         return BuildResult(
             workdir=workdir,

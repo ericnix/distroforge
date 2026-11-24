@@ -24,7 +24,7 @@ independente.
 
 ```bash
 uv venv --python 3.13
-uv pip install -e ".[dev]"
+uv pip install -e ".[dev,gui]"
 .venv/bin/pytest
 
 .venv/bin/distroforge catalog --base debian
@@ -33,6 +33,16 @@ uv pip install -e ".[dev]"
 .venv/bin/distroforge generate profile.yaml --out build   # árvore + /etc/calamares
 .venv/bin/distroforge build profile.yaml --out out --dry-run
 ```
+
+### GUI
+
+```bash
+.venv/bin/distroforge-gui     # ou: distroforge gui
+```
+
+Assistente em 5 passos — base, desktop, programas, personalizar e construir —
+com resumo de tamanhos ao vivo, log do build em streaming e botão para testar
+a ISO no QEMU. A GUI usa o mesmo `Orchestrator` da CLI.
 
 `build` roda dentro de um container (`podman`/`docker`) da base escolhida, com
 `--privileged` porque `live-build` e `mkarchiso` precisam de loop devices.

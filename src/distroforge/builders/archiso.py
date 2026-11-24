@@ -163,6 +163,7 @@ class ArchisoBuilder(Builder):
         workdir: Path,
         *,
         dry_run: bool = False,
+        on_line=None,
     ) -> BuildResult:
         command = container_command(DEFAULT_IMAGE, workdir, "build.sh")
         log = workdir / "build.log"
@@ -170,7 +171,7 @@ class ArchisoBuilder(Builder):
         if dry_run:
             return BuildResult(workdir=workdir, command=command, dry_run=True)
 
-        code = run(command, log)
+        code = run(command, log, on_line=on_line)
         produced = sorted((workdir / "out").glob("*.iso")) if (workdir / "out").is_dir() else []
         return BuildResult(
             workdir=workdir,

@@ -47,6 +47,7 @@ class Builder(ABC):
         workdir: Path,
         *,
         dry_run: bool = False,
+        on_line=None,
     ) -> BuildResult:
         """Executa o build (normalmente em container) e devolve o resultado."""
 

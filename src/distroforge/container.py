@@ -106,8 +106,15 @@ def remove_tree(path: Path) -> None:
         )
 
 
-def run(command: list[str], log_path: Path) -> int:
-    """Roda o comando, ecoando a saída e gravando tudo no log."""
+def run(
+    command: list[str],
+    log_path: Path,
+    on_line: "callable | None" = None,  # type: ignore[valid-type]
+) -> int:
+    """Roda o comando, ecoando a saída e gravando tudo no log.
+
+    ``on_line`` recebe cada linha (a GUI usa isso para o log ao vivo).
+    """
     if runtime() is None:
         raise ContainerError(
             "podman (ou docker) não encontrado; instale um deles para rodar o build"
@@ -117,6 +124,8 @@ def run(command: list[str], log_path: Path) -> int:
         header = "$ " + " ".join(command) + "\n"
         log.write(header)
         log.flush()
+        if on_line:
+            on_line(header.rstrip())
 
         try:
             process = subprocess.Popen(
@@ -133,4 +142,6 @@ def run(command: list[str], log_path: Path) -> int:
             sys.stdout.write(line)
             sys.stdout.flush()
             log.write(line)
+            if on_line:
+                on_line(line.rstrip("\n"))
         return process.wait()

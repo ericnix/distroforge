@@ -189,6 +189,18 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gui(args: argparse.Namespace) -> int:
+    try:
+        from .gui.app import main as gui_main
+    except ImportError:
+        print(
+            "erro: PySide6 não instalado; use pip install 'distroforge[gui]'",
+            file=sys.stderr,
+        )
+        return 2
+    return gui_main([])
+
+
 def cmd_catalog(args: argparse.Namespace) -> int:
     catalog = Catalog.locate()
     print(f"\n  {bold('Catálogo')}  {dim(str(catalog.root))}\n")
@@ -260,6 +272,9 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("--force", action="store_true")
     build.add_argument("--dry-run", action="store_true", help="só mostra o comando")
     build.set_defaults(func=cmd_build)
+
+    gui = subparsers.add_parser("gui", help="abre a interface gráfica")
+    gui.set_defaults(func=cmd_gui)
 
     catalog = subparsers.add_parser("catalog", help="lista bases, desktops e apps")
     catalog.add_argument("--base", help="detalha uma base")
