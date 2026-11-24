@@ -254,19 +254,17 @@ class ArchisoBuilder(Builder):
                 executable=True,
             )
         )
-        unit_link = (
-            airootfs
-            / "etc"
-            / "systemd"
-            / "system"
-            / "multi-user.target.wants"
-            / "distroforge-live.service"
-        )
-        unit_link.parent.mkdir(parents=True, exist_ok=True)
-        if unit_link.exists() or unit_link.is_symlink():
-            unit_link.unlink()
-        unit_link.symlink_to("/etc/systemd/system/distroforge-live.service")
-        written.append(unit_link)
+        wants = airootfs / "etc" / "systemd" / "system" / "multi-user.target.wants"
+        wants.mkdir(parents=True, exist_ok=True)
+        for unit, target in (
+            ("distroforge-live.service", "/etc/systemd/system/distroforge-live.service"),
+            ("NetworkManager.service", "/usr/lib/systemd/system/NetworkManager.service"),
+        ):
+            link = wants / unit
+            if link.exists() or link.is_symlink():
+                link.unlink()
+            link.symlink_to(target)
+            written.append(link)
 
         written.append(self._write(workdir / "build.sh", BUILD_SCRIPT, executable=True))
         return written
