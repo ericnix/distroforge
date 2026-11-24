@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .builders import BUILDERS, BuildError, BuildResult
 from .catalog import Catalog, CatalogError, Resolution
+from .container import remove_tree
 from .installers import INSTALLERS
 from .profile import Profile
 
@@ -121,7 +122,7 @@ class Orchestrator:
                 raise FileExistsError(
                     f"{workdir} já existe; use --force para substituir"
                 )
-            shutil.rmtree(workdir)
+            remove_tree(workdir)
         workdir.mkdir(parents=True)
 
         profile.save(workdir / "profile.yaml")

@@ -62,6 +62,50 @@ def container_command(
     ]
 
 
+def remove_tree(path: Path) -> None:
+    """Remove uma árvore que pode ter arquivos criados dentro do container.
+
+    Em podman rootless, processos não-root do container gravam com subuids, e o
+    usuário do host não consegue apagar. Nesse caso removemos de dentro do
+    container, onde esses uids são mapeados.
+    """
+    if not path.exists():
+        return
+    try:
+        shutil.rmtree(path)
+        return
+    except PermissionError:
+        pass
+
+    engine = runtime()
+    if engine is None:
+        raise ContainerError(
+            f"sem permissão para remover {path} e podman/docker não está disponível"
+        )
+
+    parent = path.resolve().parent
+    completed = subprocess.run(
+        [
+            engine,
+            "run",
+            "--rm",
+            "-v",
+            f"{parent}:/w:Z",
+            "debian:trixie-slim",
+            "rm",
+            "-rf",
+            f"/w/{path.name}",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0 or path.exists():
+        raise ContainerError(
+            f"não foi possível remover {path}: {completed.stderr.strip()}"
+        )
+
+
 def run(command: list[str], log_path: Path) -> int:
     """Roda o comando, ecoando a saída e gravando tudo no log."""
     if runtime() is None:
