@@ -72,6 +72,14 @@ distroforge build profile.yaml --out out
 10. **`grub-pc` e `grub-efi-amd64` são mutuamente exclusivos.** O rootfs usa os
     `*-bin` (BIOS, UEFI e assinado) para o Calamares instalar em qualquer
     firmware.
+11. **`modules-search` ausente = lista vazia.** O Calamares não usa um default:
+    `interpretModulesSearch` devolve vazio quando a chave não existe. O valor
+    correto é `[ local ]`, que resolve para `<libdir>/calamares/modules`
+    (multiarch no Debian).
+12. **O pacote `calamares` não traz nenhum `.conf` de módulo.** Quem fornece
+    `users`, `bootloader`, `packages`, `welcome`, `unpackfs` etc. é o
+    `calamares-settings-debian`; sem ele o instalador não tem como particionar
+    nem criar usuário.
 
 ## Como repetir o teste
 

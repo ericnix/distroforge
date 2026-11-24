@@ -58,6 +58,7 @@ def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Pr
     show = data["sequence"][0]["show"]
     execute = data["sequence"][1]["exec"]
 
+    assert data["modules-search"] == ["local"]
     assert "packagechooser" in show
     assert "netinstall" in show
     assert "packagechooser" not in execute
