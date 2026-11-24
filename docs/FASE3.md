@@ -1,7 +1,7 @@
 # Fase 3 — Arch Linux e Ubuntu
 
-> Status: **build do Arch ok** (ISO de ~1 GB gerada). Boot e instalador em
-> validação. Ubuntu: geração de árvore pronta, build ainda não exercitado.
+> Status: **build do Arch ok** (ISO de ~1 GB gerada), mas o boot live para no
+> `switch_root`. Ubuntu: geração de árvore pronta, build ainda não exercitado.
 
 ## Arch Linux
 
@@ -80,3 +80,25 @@ python3 scripts/qemu-install-test.py out/minha-distro-arch-1.0-amd64.iso
 ```
 
 O primeiro build compila o Calamares do AUR (~10 min); os seguintes usam o cache.
+
+## Pendência: boot do Arch
+
+A ISO boota (syslinux → kernel → initrd), mas o systemd do initramfs falha em
+`systemd-switch-root.service` e cai em *emergency mode*.
+
+Já verificado:
+
+- UUID do ISO (`blkid`) bate com `archisosearchuuid` no menu
+- `/boot/<uuid>.uuid` existe na ISO
+- `/arch/x86_64/airootfs.sfs` existe
+- o initramfs contém `hooks/archiso` (build log confirma todos os hooks)
+- `mkinitcpio-archiso` (não `archiso`) é o pacote que fornece os hooks
+
+Hipótese principal: no mkinitcpio 42 o initramfs roda systemd como init e o
+`mount_handler` exportado pelo hook `archiso` (pensado para o init do
+initcpio) não é invocado. Próximos passos sugeridos:
+
+1. bootar a ISO oficial do Arch no mesmo QEMU como controle (isolar se é
+   ambiente ou perfil);
+2. testar `archisodevice=/dev/sr0` explícito no `APPEND`;
+3. comparar o initramfs gerado com o da ISO oficial (`lsinitcpio`).
