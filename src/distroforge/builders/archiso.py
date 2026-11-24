@@ -109,8 +109,7 @@ initrd   /%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img
 options  archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% %KERNEL_PARAMS%
 """
 
-BUILD_SCRIPT = """\
-#!/usr/bin/env bash
+BUILD_SCRIPT = """#!/usr/bin/env bash
 # gerado pelo DistroForge — roda dentro do container Arch
 set -euo pipefail
 
@@ -119,19 +118,33 @@ pacman-key --init
 pacman-key --populate archlinux
 pacman -Sy --noconfirm --needed base-devel git archiso
 
-echo "==> compilando calamares do AUR"
-id -u builder >/dev/null 2>&1 || useradd -m builder
-echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
-rm -rf /build/pkg
-mkdir -p /build/pkg
-chown builder:builder /build/pkg
-su builder -c '
-  set -e
-  cd /build/pkg
-  git clone --depth 1 https://aur.archlinux.org/calamares.git
-  cd calamares
-  makepkg -s --noconfirm
-'
+if ls /aur/calamares/*.pkg.tar.* >/dev/null 2>&1; then
+  echo "==> calamares do cache (/aur/calamares)"
+  mkdir -p /build/pkg/calamares
+  cp /aur/calamares/*.pkg.tar.* /build/pkg/calamares/
+else
+  echo "==> compilando calamares do AUR"
+  id -u builder >/dev/null 2>&1 || useradd -m builder
+  echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+  rm -rf /build/pkg
+  mkdir -p /build/pkg
+  chown builder:builder /build/pkg
+  su builder -c '
+    set -e
+    cd /build/pkg
+    git clone --depth 1 https://aur.archlinux.org/calamares.git
+    cd calamares
+    makepkg -s --noconfirm
+  '
+  mkdir -p /aur/calamares
+  cp /build/pkg/calamares/*.pkg.tar.* /aur/calamares/
+fi
+
+echo "==> adaptando arch-chroot para podman rootless"
+sed -i 's|chroot_add_mount udev "$1/dev" -t devtmpfs -o mode=0755,nosuid|chroot_add_mount /dev "$1/dev" --rbind|' /usr/bin/arch-chroot
+sed -i 's|chroot_add_mount devpts "$1/dev/pts" -t devpts -o mode=0620,gid=5,nosuid,noexec|true|' /usr/bin/arch-chroot
+sed -i 's|chroot_add_mount shm "$1/dev/shm" -t tmpfs -o mode=1777,nosuid,nodev|true|' /usr/bin/arch-chroot
+sed -i 's|chroot_add_mount sys "$1/sys" -t sysfs -o nosuid,noexec,nodev,ro|chroot_add_mount /sys "$1/sys" --rbind|' /usr/bin/arch-chroot
 
 echo "==> publicando repositório local"
 mkdir -p /build/localrepo
@@ -277,7 +290,14 @@ class ArchisoBuilder(Builder):
         dry_run: bool = False,
         on_line=None,
     ) -> BuildResult:
-        command = container_command(DEFAULT_IMAGE, workdir, "build.sh")
+        cache = Path.home() / ".cache" / "distroforge" / "aur"
+        cache.mkdir(parents=True, exist_ok=True)
+        command = container_command(
+            DEFAULT_IMAGE,
+            workdir,
+            "build.sh",
+            extra_args=["-v", f"{cache}:/aur:Z"],
+        )
         log = workdir / "build.log"
 
         if dry_run:
