@@ -1,0 +1,58 @@
+# Bases suportadas pelo DistroForge.
+# iso_size = tamanho da ISO netinstall em MB (base mínima + Calamares + firmware).
+# status: stable | soon
+bases:
+  - id: debian
+    label: Debian
+    release: "13 (trixie)"
+    status: stable
+    iso_size: 780
+    pkg_manager: apt
+    builder: live-build
+    installer: Calamares
+    accent: "#d70a53"
+    summary: "Mirrors rápidos, Calamares oficial no live e ecossistema previsível."
+
+  - id: ubuntu
+    label: Ubuntu
+    release: "26.04 LTS"
+    status: stable
+    iso_size: 820
+    pkg_manager: apt
+    builder: live-build
+    installer: Calamares
+    accent: "#e95420"
+    summary: "Base popular, HWE e suporte a hardware mais recente."
+
+  - id: arch
+    label: Arch Linux
+    release: "rolling"
+    status: stable
+    iso_size: 640
+    pkg_manager: pacman
+    builder: archiso
+    installer: Calamares
+    accent: "#1793d1"
+    summary: "Rolling release, pacotes granulares e build mais rápido."
+
+  - id: fedora
+    label: Fedora
+    release: "44"
+    status: soon
+    iso_size: 760
+    pkg_manager: dnf
+    builder: lorax
+    installer: Anaconda
+    accent: "#3c6eb4"
+    summary: "Anaconda via kickstart parcial. Sem fork do instalador."
+
+  - id: opensuse
+    label: openSUSE
+    release: "Tumbleweed"
+    status: soon
+    iso_size: 800
+    pkg_manager: zypper
+    builder: kiwi
+    installer: Agama
+    accent: "#73ba25"
+    summary: "Agama com perfil JSON gerado pelo DistroForge."

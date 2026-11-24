@@ -1,0 +1,26 @@
+{
+  "name": "distroforge-site",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Site interativo do DistroForge — construtor de distros Linux com GUI",
+  "scripts": {
+    "catalog": "node scripts/export_catalog.mjs",
+    "predev": "npm run catalog",
+    "dev": "astro dev",
+    "prebuild": "npm run catalog",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/svelte": "^7.1.0",
+    "astro": "^5.14.0",
+    "svelte": "^5.39.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "yaml": "^2.8.1"
+  }
+}

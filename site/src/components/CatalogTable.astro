@@ -1,0 +1,119 @@
+---
+import catalog from '../data/catalog.json';
+
+const bases = catalog.bases.filter((base) => base.status === 'stable');
+
+function pkgLabel(item: any, baseId: string): string | null {
+  const list = item.pkgs?.[baseId];
+  if (!list || list.length === 0) return null;
+  return list.length > 1 ? `${list[0]} +${list.length - 1}` : list[0];
+}
+
+function fmtMb(mb: number | undefined): string {
+  if (!mb) return '—';
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1).replace('.', ',')} GB` : `${mb} MB`;
+}
+
+const desktops = catalog.desktops;
+const wms = catalog.wms;
+
+const groups = catalog.categories.map((category) => ({
+  ...category,
+  items: catalog.apps.filter((app) => app.category === category.id),
+}));
+---
+
+<section id="catalogo" class="page scroll-mt-24 py-20">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="max-w-2xl">
+      <p class="eyebrow">Catálogo</p>
+      <h2 class="h2 mt-2">O mesmo desktop, cinco nomes.</h2>
+      <p class="muted mt-2 text-sm leading-relaxed">
+        O catálogo mapeia cada capacidade para o pacote certo em cada distro. É o ativo mais valioso
+        do projeto — e a única fonte de dados do app e deste site.
+      </p>
+    </div>
+    <span class="chip">catalog/*.yaml → JSON</span>
+  </div>
+
+  <h3 class="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-fog-500">
+    Desktops completos
+  </h3>
+  <div class="mt-3 overflow-x-auto rounded-xl border border-ink-700">
+    <table class="w-full min-w-[44rem] border-collapse text-left text-sm">
+      <thead>
+        <tr class="border-b border-ink-700 bg-ink-850 text-[11px] uppercase tracking-wider text-fog-500">
+          <th scope="col" class="px-4 py-3 font-semibold">Desktop</th>
+          {bases.map((base) => (
+            <th scope="col" class="px-4 py-3 font-semibold">{base.label}</th>
+          ))}
+          <th scope="col" class="px-4 py-3 text-right font-semibold">Download · Debian</th>
+        </tr>
+      </thead>
+      <tbody>
+        {desktops.map((desktop) => (
+          <tr class="border-b border-ink-800 last:border-0 hover:bg-ink-900/50">
+            <td class="px-4 py-3">
+              <span class="font-medium text-white">{desktop.label}</span>
+              <span class="mt-0.5 block text-[11px] text-fog-500">{desktop.summary}</span>
+            </td>
+            {bases.map((base) => (
+              <td class="px-4 py-3 font-mono text-[11px] text-fog-300">
+                {pkgLabel(desktop, base.id) ?? <span class="text-fog-600">—</span>}
+              </td>
+            ))}
+            <td class="px-4 py-3 text-right font-mono text-[11px] text-brand-300">
+              {fmtMb(desktop.size?.debian)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-fog-500">
+    Window managers
+  </h3>
+  <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    {wms.map((wm) => (
+      <div class="rounded-lg border border-ink-700 bg-ink-900/60 p-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-medium text-white">{wm.label}</span>
+          <span class="font-mono text-[10px] text-fog-500">{fmtMb(wm.size?.arch)}</span>
+        </div>
+        <p class="mt-1 text-[11px] leading-relaxed text-fog-400">{wm.summary}</p>
+        <p class="mt-2 font-mono text-[10px] text-fog-500">
+          {Object.keys(wm.pkgs ?? {}).join(' · ')}
+        </p>
+      </div>
+    ))}
+  </div>
+
+  <h3 class="mt-10 text-xs font-semibold uppercase tracking-[0.16em] text-fog-500">
+    Aplicativos ({catalog.apps.length})
+  </h3>
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    {groups.map((group) => (
+      <div class="rounded-xl border border-ink-700 bg-ink-900/40 p-4">
+        <h4 class="text-[11px] font-semibold uppercase tracking-wider text-fog-500">{group.label}</h4>
+        <ul class="mt-2.5 flex flex-wrap gap-1.5">
+          {group.items.map((app) => (
+            <li class="chip !py-1">
+              {app.label}
+              {app.external && (
+                <span class="text-[9px] font-semibold uppercase tracking-wide text-amber-400">
+                  repo extra
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-4 text-xs text-fog-500">
+    Pacotes por base e tamanhos ficam em <code class="kbd">catalog/desktops.yaml</code>,
+    <code class="kbd">wms.yaml</code> e <code class="kbd">apps.yaml</code>.
+  </p>
+</section>

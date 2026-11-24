@@ -1,0 +1,332 @@
+# Aplicativos, agrupados por categoria.
+# size = download aproximado em MB por base. external = requer repositório de terceiros.
+categories:
+  - id: browser
+    label: Navegadores
+  - id: office
+    label: Escritório
+  - id: media
+    label: Mídia e imagem
+  - id: dev
+    label: Desenvolvimento
+  - id: games
+    label: Jogos
+  - id: utils
+    label: Utilidades
+
+apps:
+  - id: firefox
+    label: Firefox
+    category: browser
+    default: true
+    size: { debian: 210, ubuntu: 220, arch: 180, fedora: 215, opensuse: 205 }
+    pkgs:
+      debian: [firefox-esr]
+      ubuntu: [firefox]
+      arch: [firefox]
+      fedora: [firefox]
+      opensuse: [MozillaFirefox]
+
+  - id: chromium
+    label: Chromium
+    category: browser
+    size: { debian: 190, ubuntu: 200, arch: 165, fedora: 195, opensuse: 185 }
+    pkgs:
+      debian: [chromium]
+      ubuntu: [chromium-browser]
+      arch: [chromium]
+      fedora: [chromium]
+      opensuse: [chromium]
+
+  - id: brave
+    label: Brave
+    category: browser
+    external: true
+    size: { debian: 200, ubuntu: 200, arch: 190, fedora: 200, opensuse: 200 }
+    pkgs:
+      debian: [brave-browser]
+      ubuntu: [brave-browser]
+      arch: [brave-bin]
+      fedora: [brave-browser]
+      opensuse: [brave-browser]
+
+  - id: libreoffice
+    label: LibreOffice
+    category: office
+    default: true
+    size: { debian: 480, ubuntu: 520, arch: 430, fedora: 500, opensuse: 470 }
+    pkgs:
+      debian: [libreoffice]
+      ubuntu: [libreoffice]
+      arch: [libreoffice-fresh]
+      fedora: [libreoffice]
+      opensuse: [libreoffice]
+
+  - id: thunderbird
+    label: Thunderbird
+    category: office
+    size: { debian: 110, ubuntu: 115, arch: 100, fedora: 112, opensuse: 108 }
+    pkgs:
+      debian: [thunderbird]
+      ubuntu: [thunderbird]
+      arch: [thunderbird]
+      fedora: [thunderbird]
+      opensuse: [MozillaThunderbird]
+
+  - id: vlc
+    label: VLC
+    category: media
+    default: true
+    size: { debian: 95, ubuntu: 100, arch: 85, fedora: 98, opensuse: 92 }
+    pkgs:
+      debian: [vlc]
+      ubuntu: [vlc]
+      arch: [vlc]
+      fedora: [vlc]
+      opensuse: [vlc]
+
+  - id: mpv
+    label: mpv
+    category: media
+    size: { debian: 60, ubuntu: 65, arch: 55, fedora: 62, opensuse: 58 }
+    pkgs:
+      debian: [mpv]
+      ubuntu: [mpv]
+      arch: [mpv]
+      fedora: [mpv]
+      opensuse: [mpv]
+
+  - id: gimp
+    label: GIMP
+    category: media
+    size: { debian: 210, ubuntu: 220, arch: 190, fedora: 215, opensuse: 205 }
+    pkgs:
+      debian: [gimp]
+      ubuntu: [gimp]
+      arch: [gimp]
+      fedora: [gimp]
+      opensuse: [gimp]
+
+  - id: obs-studio
+    label: OBS Studio
+    category: media
+    size: { debian: 250, ubuntu: 260, arch: 230, fedora: 255, opensuse: 245 }
+    pkgs:
+      debian: [obs-studio]
+      ubuntu: [obs-studio]
+      arch: [obs-studio]
+      fedora: [obs-studio]
+      opensuse: [obs-studio]
+
+  - id: kdenlive
+    label: Kdenlive
+    category: media
+    size: { debian: 320, ubuntu: 330, arch: 290, fedora: 325, opensuse: 310 }
+    pkgs:
+      debian: [kdenlive]
+      ubuntu: [kdenlive]
+      arch: [kdenlive]
+      fedora: [kdenlive]
+      opensuse: [kdenlive]
+
+  - id: git
+    label: Git
+    category: dev
+    default: true
+    size: { debian: 45, ubuntu: 48, arch: 40, fedora: 46, opensuse: 44 }
+    pkgs:
+      debian: [git]
+      ubuntu: [git]
+      arch: [git]
+      fedora: [git]
+      opensuse: [git]
+
+  - id: neovim
+    label: Neovim
+    category: dev
+    size: { debian: 30, ubuntu: 32, arch: 26, fedora: 30, opensuse: 28 }
+    pkgs:
+      debian: [neovim]
+      ubuntu: [neovim]
+      arch: [neovim]
+      fedora: [neovim]
+      opensuse: [neovim]
+
+  - id: vscode
+    label: VS Code
+    category: dev
+    external: true
+    size: { debian: 320, ubuntu: 320, arch: 310, fedora: 320, opensuse: 320 }
+    pkgs:
+      debian: [code]
+      ubuntu: [code]
+      arch: [code]
+      fedora: [code]
+      opensuse: [code]
+
+  - id: docker
+    label: Docker
+    category: dev
+    size: { debian: 280, ubuntu: 290, arch: 260, fedora: 275, opensuse: 270 }
+    pkgs:
+      debian: [docker.io, docker-compose]
+      ubuntu: [docker.io, docker-compose]
+      arch: [docker, docker-compose]
+      fedora: [moby-engine, docker-compose]
+      opensuse: [docker, docker-compose]
+
+  - id: podman
+    label: Podman
+    category: dev
+    size: { debian: 180, ubuntu: 185, arch: 160, fedora: 175, opensuse: 170 }
+    pkgs:
+      debian: [podman]
+      ubuntu: [podman]
+      arch: [podman]
+      fedora: [podman]
+      opensuse: [podman]
+
+  - id: python
+    label: Python 3
+    category: dev
+    default: true
+    size: { debian: 70, ubuntu: 75, arch: 65, fedora: 72, opensuse: 68 }
+    pkgs:
+      debian: [python3, python3-pip, python3-venv]
+      ubuntu: [python3, python3-pip, python3-venv]
+      arch: [python, python-pip]
+      fedora: [python3, python3-pip]
+      opensuse: [python3, python3-pip]
+
+  - id: java
+    label: OpenJDK 21
+    category: dev
+    size: { debian: 240, ubuntu: 250, arch: 230, fedora: 245, opensuse: 235 }
+    pkgs:
+      debian: [default-jdk]
+      ubuntu: [default-jdk]
+      arch: [jdk-openjdk]
+      fedora: [java-21-openjdk-devel]
+      opensuse: [java-21-openjdk-devel]
+
+  - id: steam
+    label: Steam
+    category: games
+    size: { debian: 380, ubuntu: 400, arch: 350, fedora: 390, opensuse: 375 }
+    pkgs:
+      debian: [steam]
+      ubuntu: [steam]
+      arch: [steam]
+      fedora: [steam]
+      opensuse: [steam]
+
+  - id: lutris
+    label: Lutris
+    category: games
+    size: { debian: 150, ubuntu: 160, arch: 140, fedora: 155, opensuse: 150 }
+    pkgs:
+      debian: [lutris]
+      ubuntu: [lutris]
+      arch: [lutris]
+      fedora: [lutris]
+      opensuse: [lutris]
+
+  - id: mangohud
+    label: MangoHud
+    category: games
+    size: { debian: 25, ubuntu: 26, arch: 22, fedora: 25, opensuse: 24 }
+    pkgs:
+      debian: [mangohud]
+      ubuntu: [mangohud]
+      arch: [mangohud]
+      fedora: [mangohud]
+      opensuse: [mangohud]
+
+  - id: htop
+    label: htop
+    category: utils
+    default: true
+    size: { debian: 12, ubuntu: 12, arch: 10, fedora: 12, opensuse: 11 }
+    pkgs:
+      debian: [htop]
+      ubuntu: [htop]
+      arch: [htop]
+      fedora: [htop]
+      opensuse: [htop]
+
+  - id: btop
+    label: btop
+    category: utils
+    size: { debian: 15, ubuntu: 16, arch: 13, fedora: 15, opensuse: 14 }
+    pkgs:
+      debian: [btop]
+      ubuntu: [btop]
+      arch: [btop]
+      fedora: [btop]
+      opensuse: [btop]
+
+  - id: fastfetch
+    label: fastfetch
+    category: utils
+    size: { debian: 8, ubuntu: 8, arch: 7, fedora: 8, opensuse: 8 }
+    pkgs:
+      debian: [fastfetch]
+      ubuntu: [fastfetch]
+      arch: [fastfetch]
+      fedora: [fastfetch]
+      opensuse: [fastfetch]
+
+  - id: timeshift
+    label: Timeshift
+    category: utils
+    size: { debian: 45, ubuntu: 48, arch: 40, fedora: 46, opensuse: 44 }
+    pkgs:
+      debian: [timeshift]
+      ubuntu: [timeshift]
+      arch: [timeshift]
+      fedora: [timeshift]
+      opensuse: [timeshift]
+
+  - id: flatpak
+    label: Flatpak
+    category: utils
+    size: { debian: 60, ubuntu: 62, arch: 55, fedora: 58, opensuse: 56 }
+    pkgs:
+      debian: [flatpak]
+      ubuntu: [flatpak]
+      arch: [flatpak]
+      fedora: [flatpak]
+      opensuse: [flatpak]
+
+  - id: gparted
+    label: GParted
+    category: utils
+    size: { debian: 40, ubuntu: 42, arch: 36, fedora: 41, opensuse: 39 }
+    pkgs:
+      debian: [gparted]
+      ubuntu: [gparted]
+      arch: [gparted]
+      fedora: [gparted]
+      opensuse: [gparted]
+
+  - id: keepassxc
+    label: KeePassXC
+    category: utils
+    size: { debian: 85, ubuntu: 88, arch: 78, fedora: 86, opensuse: 82 }
+    pkgs:
+      debian: [keepassxc]
+      ubuntu: [keepassxc]
+      arch: [keepassxc]
+      fedora: [keepassxc]
+      opensuse: [keepassxc]
+
+  - id: syncthing
+    label: Syncthing
+    category: utils
+    size: { debian: 55, ubuntu: 58, arch: 48, fedora: 56, opensuse: 52 }
+    pkgs:
+      debian: [syncthing]
+      ubuntu: [syncthing]
+      arch: [syncthing]
+      fedora: [syncthing]
+      opensuse: [syncthing]

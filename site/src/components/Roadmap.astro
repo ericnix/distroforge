@@ -1,0 +1,111 @@
+---
+const phases = [
+  {
+    n: '0',
+    title: 'Prova de conceito',
+    text: 'Debian mínimo + Calamares + netinstall instalando KDE em VM. É bloqueante: se não fechar, o resto não existe.',
+    effort: '3–5 dias',
+    status: 'próximo',
+    mvp: true,
+  },
+  {
+    n: '1',
+    title: 'Núcleo + CLI',
+    text: 'Perfil pydantic, catálogo e orquestrador. distroforge build profile.yaml gera a ISO.',
+    effort: '1 semana',
+    status: 'planejado',
+    mvp: true,
+  },
+  {
+    n: '2',
+    title: 'Interface PySide6',
+    text: 'Wizard de 4 passos, log do build ao vivo e botão para testar a ISO no QEMU.',
+    effort: '1–2 semanas',
+    status: 'planejado',
+    mvp: true,
+  },
+  {
+    n: '3',
+    title: 'Arch + Ubuntu',
+    text: 'Builder archiso e adapter Arch. Ubuntu entra de graça no live-build.',
+    effort: '1–2 semanas',
+    status: 'planejado',
+    mvp: true,
+  },
+  {
+    n: '4',
+    title: 'Catálogo rico',
+    text: '6 desktops, 4 WMs, ~40 apps, passo de Wi-Fi no live e fallback offline mínimo.',
+    effort: '1–2 semanas',
+    status: 'planejado',
+    mvp: true,
+  },
+  {
+    n: '5',
+    title: 'openSUSE',
+    text: 'Builder kiwi e adapter Agama: o perfil vira JSON, sem tocar no instalador.',
+    effort: '2–3 semanas',
+    status: 'planejado',
+    mvp: false,
+  },
+  {
+    n: '6',
+    title: 'Fedora',
+    text: 'Builder lorax, kickstart interativo e, só se indispensável, um addon do Anaconda.',
+    effort: '3–4 semanas',
+    status: 'planejado',
+    mvp: false,
+  },
+];
+
+const statusStyle: Record<string, string> = {
+  'próximo': '!border-brand-500/40 !text-brand-300',
+  'em andamento': '!border-amber-400/40 !text-amber-400',
+  'concluído': '!border-mint-400/40 !text-mint-400',
+  'planejado': '',
+};
+---
+
+<section id="roadmap" class="page scroll-mt-24 py-20">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="max-w-2xl">
+      <p class="eyebrow">Roadmap</p>
+      <h2 class="h2 mt-2">Do PoC à ISO em ~6 semanas.</h2>
+      <p class="muted mt-2 text-sm leading-relaxed">
+        O MVP cobre Debian, Ubuntu e Arch com netinstall real. Fedora e openSUSE vêm depois, com
+        instaladores próprios.
+      </p>
+    </div>
+    <span class="chip">estimativas de esforço</span>
+  </div>
+
+  <ol class="mt-8 space-y-2.5 border-l border-ink-700 pl-6">
+    {phases.map((phase) => (
+      <li class="relative">
+        <span
+          class={`absolute top-5 -left-[1.9rem] size-3 rounded-full ring-4 ring-ink-950 ${
+            phase.status === 'próximo'
+              ? 'bg-brand-400'
+              : phase.status === 'concluído'
+                ? 'bg-mint-400'
+                : 'bg-ink-600'
+          }`}
+          aria-hidden="true"></span>
+        <div class="card flex flex-wrap items-start justify-between gap-3 p-4">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-mono text-[11px] text-fog-500">fase {phase.n}</span>
+              <h3 class="font-semibold text-white">{phase.title}</h3>
+              {phase.mvp && <span class="chip !py-0.5 !text-[10px]">MVP</span>}
+            </div>
+            <p class="mt-1 max-w-xl text-xs leading-relaxed text-fog-400">{phase.text}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="font-mono text-[11px] text-fog-500">{phase.effort}</span>
+            <span class={`chip ${statusStyle[phase.status] ?? ''}`}>{phase.status}</span>
+          </div>
+        </div>
+      </li>
+    ))}
+  </ol>
+</section>

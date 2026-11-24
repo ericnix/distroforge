@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import BackendMatrix from '../components/BackendMatrix.astro';
+import CatalogTable from '../components/CatalogTable.astro';
+import Roadmap from '../components/Roadmap.astro';
+import Faq from '../components/Faq.astro';
+import Configurator from '../components/Configurator.svelte';
+import InstallerMock from '../components/InstallerMock.svelte';
+import { SITE } from '../config';
+---
+
+<Base>
+  <Hero />
+  <Configurator client:load />
+  <InstallerMock client:visible />
+  <HowItWorks />
+  <BackendMatrix />
+  <CatalogTable />
+  <Roadmap />
+  <Faq />
+
+  <section class="page py-16">
+    <div class="card relative overflow-hidden p-8 text-center sm:p-12">
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(36rem_18rem_at_50%_0%,rgb(79_142_247/0.16),transparent_70%)]"
+        aria-hidden="true"
+      ></div>
+      <p class="eyebrow relative">Comece agora</p>
+      <h2 class="h2 relative mt-2">Sua distro, do seu jeito.</h2>
+      <p class="muted relative mx-auto mt-2 max-w-lg text-sm leading-relaxed">
+        Monte o perfil no navegador, leve o <code class="kbd">profile.yaml</code> para o repositório
+        e rode o build. Em minutos você tem uma ISO bootável com instalador.
+      </p>
+      <div class="relative mt-6 flex flex-wrap items-center justify-center gap-3">
+        <a href="#montar" class="btn-primary">Montar a minha</a>
+        <a href={SITE.repo} class="btn-ghost" target="_blank" rel="noopener noreferrer">
+          Ver o código
+        </a>
+      </div>
+    </div>
+  </section>
+</Base>

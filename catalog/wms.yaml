@@ -1,0 +1,52 @@
+# Window managers (composição mínima, você monta o resto).
+# pkgs ausente para uma base = indisponível nessa base.
+wms:
+  - id: hyprland
+    label: Hyprland
+    icon: hyprland
+    summary: "Compositor Wayland com animações e tiling dinâmico."
+    size: { ubuntu: 420, arch: 380 }
+    pkgs:
+      ubuntu: [hyprland, hyprpaper, waybar, wofi]
+      arch: [hyprland, hyprpaper, waybar, wofi]
+    note: "No Debian exige repositório unstable; no Ubuntu, PPA."
+
+  - id: sway
+    label: Sway
+    icon: sway
+    summary: "Tiling Wayland compatível com a configuração do i3."
+    size: { debian: 300, ubuntu: 310, arch: 260 }
+    pkgs:
+      debian: [sway, swaybg, waybar, foot]
+      ubuntu: [sway, swaybg, waybar, foot]
+      arch: [sway, swaybg, waybar, foot]
+
+  - id: i3
+    label: i3wm
+    icon: i3
+    summary: "Tiling X11 maduro, config em texto puro."
+    size: { debian: 250, ubuntu: 260, arch: 210 }
+    pkgs:
+      debian: [i3-wm, i3status, i3lock, dmenu, xterm]
+      ubuntu: [i3-wm, i3status, i3lock, dmenu, xterm]
+      arch: [i3-wm, i3status, dmenu, xterm]
+
+  - id: bspwm
+    label: bspwm
+    icon: bspwm
+    summary: "Tiling binário, leve, controlado por scripts."
+    size: { debian: 200, ubuntu: 210, arch: 170 }
+    pkgs:
+      debian: [bspwm, sxhkd, polybar, rofi]
+      ubuntu: [bspwm, sxhkd, polybar, rofi]
+      arch: [bspwm, sxhkd, polybar, rofi]
+
+  - id: openbox
+    label: Openbox
+    icon: openbox
+    summary: "Stacking minimalista, base de muitas distros leves."
+    size: { debian: 180, ubuntu: 190, arch: 150 }
+    pkgs:
+      debian: [openbox, obconf, tint2, lxappearance]
+      ubuntu: [openbox, obconf, tint2, lxappearance]
+      arch: [openbox, obconf, tint2, lxappearance]

@@ -1,0 +1,68 @@
+# Desktops completos. size = download aproximado em MB por base.
+# pkgs ausente para uma base = item indisponível nessa base (a UI filtra).
+desktops:
+  - id: kde
+    label: KDE Plasma
+    icon: kde
+    summary: "Completo, altamente configurável, ótimo em HiDPI."
+    size: { debian: 1850, ubuntu: 2100, arch: 1450, fedora: 1900, opensuse: 1750 }
+    pkgs:
+      debian: [task-kde-desktop]
+      ubuntu: [kubuntu-desktop]
+      arch: [plasma-meta, kde-applications]
+      fedora: ["@kde-desktop"]
+      opensuse: [patterns-kde-kde]
+
+  - id: gnome
+    label: GNOME
+    icon: gnome
+    summary: "Fluxo de trabalho simples, Wayland nativo, acessível."
+    size: { debian: 1600, ubuntu: 1750, arch: 1300, fedora: 1650, opensuse: 1550 }
+    pkgs:
+      debian: [task-gnome-desktop]
+      ubuntu: [ubuntu-desktop]
+      arch: [gnome]
+      fedora: ["@gnome-desktop"]
+      opensuse: [patterns-gnome-gnome]
+
+  - id: xfce
+    label: XFCE
+    icon: xfce
+    summary: "Leve, estável e previsível. Ótimo para máquinas antigas."
+    size: { debian: 700, ubuntu: 760, arch: 560, fedora: 720, opensuse: 680 }
+    pkgs:
+      debian: [task-xfce-desktop]
+      ubuntu: [xubuntu-desktop]
+      arch: [xfce4, xfce4-goodies]
+      fedora: ["@xfce-desktop"]
+      opensuse: [patterns-xfce-xfce]
+
+  - id: cinnamon
+    label: Cinnamon
+    icon: cinnamon
+    summary: "Tradicional e familiar, vindo do Linux Mint."
+    size: { debian: 950, ubuntu: 1000, arch: 780 }
+    pkgs:
+      debian: [task-cinnamon-desktop]
+      ubuntu: [cinnamon-desktop-environment]
+      arch: [cinnamon]
+
+  - id: mate
+    label: MATE
+    icon: mate
+    summary: "Fork clássico do GNOME 2, sem distrações."
+    size: { debian: 820, ubuntu: 880, arch: 700 }
+    pkgs:
+      debian: [task-mate-desktop]
+      ubuntu: [ubuntu-mate-desktop]
+      arch: [mate, mate-extra]
+
+  - id: lxqt
+    label: LXQt
+    icon: lxqt
+    summary: "O mais leve da lista, com Qt e pouca RAM."
+    size: { debian: 600, ubuntu: 650, arch: 520 }
+    pkgs:
+      debian: [task-lxqt-desktop]
+      ubuntu: [lubuntu-desktop]
+      arch: [lxqt, breeze-icons]

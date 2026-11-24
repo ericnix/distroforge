@@ -1,0 +1,64 @@
+---
+const faq = [
+  {
+    q: 'Isso cria uma distro Linux de verdade?',
+    a: 'Cria um remaster com instalador: o sistema instalado usa os repositórios da base (Debian, Ubuntu ou Arch) para atualizações. Ter repositório próprio, chave GPG e pipeline de pacotes é um projeto separado, de meses.',
+  },
+  {
+    q: 'Preciso de internet para instalar?',
+    a: 'Sim, no modelo netinstall: a ISO tem só a base mínima e o instalador, e baixa o desktop e os programas durante a instalação (1,5–3 GB). Sem rede, a ISO ainda entrega um sistema mínimo funcional graças ao fallback offline.',
+  },
+  {
+    q: 'Quanto de disco e RAM para buildar?',
+    a: 'Cerca de 15–25 GB de disco por build e 4–8 GB de RAM. O build roda em container podman privilegiado, porque precisa de loop devices e mounts.',
+  },
+  {
+    q: 'Funciona com Secure Boot ligado?',
+    a: 'Debian e Ubuntu usam shim assinado, então a ISO boota com Secure Boot ativo. No Arch é preciso desligar o Secure Boot ou configurar sbctl — está documentado no plano.',
+  },
+  {
+    q: 'Por que Calamares no Debian, Ubuntu e Arch?',
+    a: 'Porque é o instalador que essas bases já usam em lives (Debian live, sabores do Ubuntu, EndeavourOS/Manjaro). Fedora usa Anaconda e openSUSE usa Agama: forçar Calamares ali seria reescrever o instalador delas.',
+  },
+  {
+    q: 'Posso usar Ubuntu como base e chamar a distro de Ubuntu?',
+    a: 'Não. A política de marca do Ubuntu é rígida e proíbe usar nome e logo. Debian é mais permissivo, mas ainda exige nome próprio e crédito. O branding do DistroForge já nasce com nome próprio.',
+  },
+  {
+    q: 'Qual a licença?',
+    a: 'GPL-3.0-or-later para o código e este site. As distros geradas seguem as licenças das bases e dos pacotes que você instalar.',
+  },
+];
+---
+
+<section id="faq" class="page scroll-mt-24 py-20">
+  <div class="max-w-2xl">
+    <p class="eyebrow">FAQ</p>
+    <h2 class="h2 mt-2">Perguntas diretas.</h2>
+  </div>
+
+  <div class="mt-8 max-w-3xl divide-y divide-ink-800 border-y border-ink-800">
+    {faq.map((item) => (
+      <details class="group py-4">
+        <summary
+          class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-fog-100 marker:hidden"
+        >
+          {item.q}
+          <svg
+            viewBox="0 0 16 16"
+            class="size-4 shrink-0 text-fog-500 transition-transform group-open:rotate-180"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        </summary>
+        <p class="mt-2.5 max-w-2xl text-sm leading-relaxed text-fog-400">{item.a}</p>
+      </details>
+    ))}
+  </div>
+</section>

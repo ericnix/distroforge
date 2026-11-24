@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="404 — página não encontrada">
+  <section class="page flex min-h-[60vh] flex-col items-start justify-center py-24">
+    <p class="eyebrow">404</p>
+    <h1 class="mt-2 text-4xl font-extrabold tracking-tight text-white">
+      Essa página não existe.
+    </h1>
+    <p class="muted mt-3 max-w-md text-sm leading-relaxed">
+      O link pode estar quebrado ou a página foi movida. Volte para o início e monte sua distro.
+    </p>
+    <a href={import.meta.env.BASE_URL} class="btn-primary mt-6">Voltar ao início</a>
+  </section>
+</Base>

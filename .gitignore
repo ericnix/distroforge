@@ -1,0 +1,24 @@
+# Dependências de build
+node_modules/
+site/node_modules/
+site/dist/
+site/.astro/
+
+# Catálogo gerado
+site/src/data/catalog.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Builds e saídas
+out/
+work/
+*.iso
+*.sha256
+
+# Editores e SO
+.vscode/
+.idea/
+.DS_Store
