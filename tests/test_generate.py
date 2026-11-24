@@ -121,8 +121,12 @@ def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile)
     )
     data = yaml.safe_load(branding.read_text(encoding="utf-8"))
     assert data["strings"]["productName"] == "PoC 1.0"
-    assert data["style"]["sidebarBackground"] == "#06070b"
+    assert data["style"]["SidebarBackground"] == "#0b0f1a"
     assert data["slideshow"] == "show.qml"
+    assert data["images"]["productLogo"] == "logo.png"
+    assert (branding.parent / "logo.png").is_file()
+    assert (branding.parent / "welcome.png").is_file()
+    assert (branding.parent / "screenshot.png").is_file()
 
 
 def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):

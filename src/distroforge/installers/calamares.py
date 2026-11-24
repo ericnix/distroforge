@@ -8,7 +8,6 @@ módulos que já vêm no pacote ``calamares``.
 
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +15,7 @@ import yaml
 
 from ..catalog import Catalog, Resolution
 from ..profile import Profile
+from .artwork import gradient_png
 from .base import Installer
 
 # Onde o squashfs do live está montado, por família de base.
@@ -55,11 +55,6 @@ EXEC_SEQUENCE = [
     "bootloader",
     "umount",
 ]
-
-# Placeholder 160x90 usado como screenshot dos itens do packagechooser.
-SCREENSHOT_PNG_B64 = (
-    "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"
-)
 
 DESKTOP_TEMPLATE = """\
 [Desktop Entry]
@@ -125,10 +120,7 @@ class CalamaresInstaller(Installer):
             )
         )
         written.append(self._write_yaml(branding / "branding.desc", self._branding(profile)))
-        shot = branding / "screenshot.png"
-        shot.parent.mkdir(parents=True, exist_ok=True)
-        shot.write_bytes(base64.b64decode(SCREENSHOT_PNG_B64))
-        written.append(shot)
+        written.extend(self._branding_images(profile, branding))
         written.append(
             self._write(
                 overlay / "usr" / "share" / "applications" / "install-distro.desktop",
@@ -228,29 +220,71 @@ class CalamaresInstaller(Installer):
 
     @staticmethod
     def _branding(profile: Profile) -> dict[str, Any]:
+        """Estrutura mínima aceita pelo Calamares 3.3.
+
+        Nós e chaves ausentes (``images``, ``slideshow``) abortam o instalador
+        com FATAL; os nomes de ``style`` são capitalizados.
+        """
         return {
             "componentName": profile.hostname,
-            # Calamares 3.3 exige a chave slideshow (QML). O arquivo é copiado
-            # do tema padrão no hook de build.
-            "slideshow": "show.qml",
+            "welcomeStyleCalamares": True,
+            "welcomeExpandingLogo": True,
+            "windowExpanding": "normal",
+            "windowSize": "860px,600px",
+            "windowPlacement": "center",
             "strings": {
                 "productName": profile.product_name,
                 "shortProductName": profile.name,
                 "version": profile.version,
                 "shortVersion": profile.version,
                 "versionedName": profile.product_name,
+                "shortVersionedName": profile.product_name,
                 "bootloaderEntryName": profile.name,
                 "productUrl": "https://distroforge-site.pages.dev",
                 "supportUrl": "https://github.com/ericnix/distroforge/issues",
+                "knownIssuesUrl": "https://github.com/ericnix/distroforge/issues",
+                "releaseNotesUrl": "https://github.com/ericnix/distroforge/blob/main/docs/PLAN.md",
+                "donateUrl": "",
             },
+            "sidebar": "widget",
+            "navigation": "widget",
+            "images": {
+                "productLogo": "logo.png",
+                "productIcon": "logo.png",
+                "productWelcome": "welcome.png",
+            },
+            # O QML é copiado do tema padrão no hook de build.
+            "slideshow": "show.qml",
+            "slideshowAPI": 2,
             "style": {
-                "sidebarBackground": "#06070b",
-                "sidebarText": "#e9ecf5",
-                "sidebarTextSelect": "#7aa7ff",
-                "sidebarTextHighlight": "#4f8ef7",
+                "SidebarBackground": "#0b0f1a",
+                "SidebarText": "#e9ecf5",
+                "SidebarTextCurrent": "#ffffff",
+                "SidebarBackgroundCurrent": profile.color,
             },
-            "windowExpandedSize": "1024x700",
         }
+
+    @staticmethod
+    def _branding_images(profile: Profile, branding: Path) -> list[Path]:
+        """Escreve logo, tela de boas-vindas e miniatura do chooser."""
+        branding.mkdir(parents=True, exist_ok=True)
+        images = {
+            "logo.png": gradient_png(
+                256, 256, "#16233d", "#0a0f19", accent=profile.color, accent_rows=(0.55, 0.62)
+            ),
+            "welcome.png": gradient_png(
+                860, 600, "#0b1120", "#16233d", accent=profile.color, accent_rows=(0.74, 0.79)
+            ),
+            "screenshot.png": gradient_png(
+                160, 90, "#0b1120", "#1b2a4a", accent=profile.color, accent_rows=(0.72, 0.85)
+            ),
+        }
+        written: list[Path] = []
+        for name, payload in images.items():
+            path = branding / name
+            path.write_bytes(payload)
+            written.append(path)
+        return written
 
     # ------------------------------------------------------------ helpers
 
