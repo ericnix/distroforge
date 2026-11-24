@@ -3,8 +3,9 @@
 Objetivo: provar que uma ISO mínima gerada pelo DistroForge boota, sobe o
 Calamares e instala o sistema baixando os pacotes do repositório da base.
 
-> Status: **em validação**. O boot e o live-config já foram confirmados; falta
-> confirmar o autostart do Calamares na última ISO (correções aplicadas).
+> Status: **instalação em validação**. Boot, live-config, Calamares e todas as
+> telas até o netinstall já foram exercitados no QEMU; falta confirmar o fim da
+> instalação e o primeiro boot do sistema no disco.
 
 ## Perfil usado
 
@@ -37,7 +38,12 @@ distroforge build profile.yaml --out out
 | Boot BIOS no QEMU | chega ao menu do isolinux |
 | Kernel + initramfs | Linux 6.12.118, boota |
 | live-config | cria usuário e faz autologin na tty1 |
-| Sessão gráfica + Calamares | **em validação** |
+| Calamares abre | janela com branding, idioma e botões de suporte |
+| Partições | detecta `/dev/vda` (20 GiB) e oferece "apagar disco" |
+| Usuário | cria conta, valida senha |
+| Desktop | packagechooser lista os 10 desktops/WMs da base Debian |
+| Programas | netinstall com grupos, tamanhos e apps pré-marcados |
+| Instalação | **em validação** (unpackfs + apt + bootloader) |
 
 ## Correções encontradas no caminho
 
