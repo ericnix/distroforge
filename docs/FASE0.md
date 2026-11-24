@@ -56,6 +56,22 @@ distroforge build profile.yaml --out out
    `shutil.rmtree` e, no `PermissionError`, remove de dentro do container.
 5. **Rótulo do volume com hífen.** ISO 9660 só aceita `A-Z0-9_`;
    `iso_volume_label()` normaliza o nome.
+6. **`modules-search` quebrava o Calamares.** A lista declarada substitui o
+   caminho compilado; no Debian multiarch os módulos ficam em
+   `/usr/lib/x86_64-linux-gnu/calamares/modules`, então a nossa lista apontava
+   para um diretório inexistente e nenhum módulo era carregado.
+7. **`slideshow` é obrigatório no branding 3.3.** Sem a chave, o Calamares
+   aborta com `FATAL` no `branding.desc`. O build copia o `show.qml` do tema
+   padrão.
+8. **Schema do `packagechooser`.** Os itens vão em `items` (não `labels`), e
+   `mode`/`method` são obrigatórios. Com `method: packages` a escolha é
+   entregue ao módulo `packages`.
+9. **Schema do `netinstall`.** Grupos usam `subgroups`; `groupsUrl` precisa ser
+   `file:///...`; grupos de topo defaultam para `selected: true`, o que
+   instalaria o catálogo inteiro — agora vêm com `selected: false`.
+10. **`grub-pc` e `grub-efi-amd64` são mutuamente exclusivos.** O rootfs usa os
+    `*-bin` (BIOS, UEFI e assinado) para o Calamares instalar em qualquer
+    firmware.
 
 ## Como repetir o teste
 
