@@ -85,6 +85,12 @@ Include = /etc/pacman.d/mirrorlist
 Include = /etc/pacman.d/mirrorlist
 """
 
+MKINITCPIO_CONF = """\
+HOOKS=(base udev microcode modconf memdisk archiso archiso_loop_mnt archiso_pxe_common archiso_pxe_nbd archiso_pxe_http archiso_pxe_nfs block filesystems keyboard)
+COMPRESSION="xz"
+COMPRESSION_OPTIONS=(-9e)
+"""
+
 SYSLINUX_CFG = """
 DEFAULT arch
 PROMPT 0
@@ -255,6 +261,12 @@ class ArchisoBuilder(Builder):
         if overlay.is_dir():
             shutil.copytree(overlay, airootfs, dirs_exist_ok=True)
             written.extend(sorted(path for path in airootfs.rglob("*") if path.is_file()))
+        written.append(
+            self._write(
+                airootfs / "etc" / "mkinitcpio.conf.d" / "archiso.conf",
+                MKINITCPIO_CONF,
+            )
+        )
 
         written.append(
             self._write(
