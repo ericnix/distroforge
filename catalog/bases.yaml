@@ -5,6 +5,7 @@ bases:
   - id: debian
     label: Debian
     release: "13 (trixie)"
+    codename: trixie
     status: stable
     iso_size: 780
     pkg_manager: apt
@@ -15,7 +16,8 @@ bases:
 
   - id: ubuntu
     label: Ubuntu
-    release: "26.04 LTS"
+    release: "24.04 LTS"
+    codename: noble
     status: stable
     iso_size: 820
     pkg_manager: apt
@@ -27,6 +29,7 @@ bases:
   - id: arch
     label: Arch Linux
     release: "rolling"
+    codename: rolling
     status: stable
     iso_size: 640
     pkg_manager: pacman
@@ -38,6 +41,7 @@ bases:
   - id: fedora
     label: Fedora
     release: "44"
+    codename: "44"
     status: soon
     iso_size: 760
     pkg_manager: dnf
@@ -49,6 +53,7 @@ bases:
   - id: opensuse
     label: openSUSE
     release: "Tumbleweed"
+    codename: tumbleweed
     status: soon
     iso_size: 800
     pkg_manager: zypper

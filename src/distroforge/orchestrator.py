@@ -29,7 +29,7 @@ class Plan:
 
     @property
     def distribution(self) -> str:
-        return self.profile.variant or self.resolution.base.codename
+        return self.profile.variant or self.resolution.base.build_codename
 
 
 @dataclass(slots=True)

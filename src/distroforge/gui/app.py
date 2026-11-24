@@ -175,7 +175,7 @@ class MainWindow(QMainWindow):
             name=self.state.name.strip() or "MinhaDistro",
             version=self.state.version.strip() or "1.0",
             base=base.id,
-            variant=base.codename,
+            variant=base.build_codename,
             desktop=self.state.desktop,
             apps=sorted(self.state.apps),
             color=self.state.color,

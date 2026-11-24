@@ -42,18 +42,17 @@ class Base:
     installer: str
     accent: str
     summary: str
+    codename: str = ""
 
     @property
     def is_stable(self) -> bool:
         return self.status == "stable"
 
     @property
-    def codename(self) -> str:
-        """Codinome usado por ferramentas de build, quando existir.
-
-        Debian publica ``13 (trixie)``; Ubuntu publica ``26.04 LTS``. Quando não
-        há codinome explícito, devolve a própria string de release.
-        """
+    def build_codename(self) -> str:
+        """Codinome usado por ferramentas de build."""
+        if self.codename:
+            return self.codename
         if "(" in self.release and ")" in self.release:
             return self.release.split("(", 1)[1].split(")", 1)[0].strip()
         return self.release.strip()
@@ -174,6 +173,7 @@ class Catalog:
                 label=str(entry["label"]),
                 release=str(entry.get("release", "")),
                 status=str(entry.get("status", "stable")),
+                codename=str(entry.get("codename", "")),
                 iso_size=int(entry.get("iso_size", 0)),
                 pkg_manager=str(entry.get("pkg_manager", "")),
                 builder=str(entry.get("builder", "")),

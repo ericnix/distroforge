@@ -58,11 +58,19 @@ prompt 0
 timeout 50
 """
 
+MIRRORS = {
+    "debian": "http://deb.debian.org/debian/",
+    "ubuntu": "http://archive.ubuntu.com/ubuntu/",
+}
+
 AUTO_CONFIG = """#!/bin/sh
 # gerado pelo DistroForge — não edite à mão
 set -e
 lb config noauto \\
+  --mode {mode} \\
   --distribution {distribution} \\
+  --mirror-bootstrap {mirror} \\
+  --mirror-chroot {mirror} \\
   --architectures {arch} \\
   --binary-images iso-hybrid \\
   --archive-areas "main contrib non-free non-free-firmware" \\
@@ -88,7 +96,7 @@ apt-get update
 apt-get install -y --no-install-recommends \\
   live-build xorriso squashfs-tools mtools dosfstools rsync \\
   wget ca-certificates git syslinux syslinux-common isolinux \\
-  grub-efi-amd64-bin grub-pc-bin grub2-common
+  grub-efi-amd64-bin grub-pc-bin grub2-common {extra}
 
 echo "==> lb build"
 cd /build
@@ -174,14 +182,18 @@ class LiveBuildBuilder(Builder):
         overlay: Path,
     ) -> list[Path]:
         base = resolution.base
-        distribution = profile.variant or base.codename
+        distribution = profile.variant or base.build_codename
+        mode = "ubuntu" if base.id == "ubuntu" else "debian"
+        mirror = MIRRORS.get(base.id, MIRRORS["debian"])
         written: list[Path] = []
 
         written.append(
             self._write(
                 workdir / "auto" / "config",
                 AUTO_CONFIG.format(
+                    mode=mode,
                     distribution=distribution,
+                    mirror=mirror,
                     arch=profile.arch,
                     application=profile.name,
                     publisher=f"DistroForge — {profile.name}",
@@ -199,9 +211,6 @@ class LiveBuildBuilder(Builder):
         )
 
         packages = list(LIVE_PACKAGES)
-        if base.id == "ubuntu":
-            # Ubuntu precisa de pacotes próprios na sessão live
-            packages.append("kubuntu-installer-prompt")
         written.append(
             self._write(
                 workdir / "config" / "package-lists" / "00-distroforge.list.chroot",
@@ -221,7 +230,13 @@ class LiveBuildBuilder(Builder):
                 executable=True,
             )
         )
-        written.append(self._write(workdir / "build.sh", BUILD_SCRIPT, executable=True))
+        written.append(
+            self._write(
+                workdir / "build.sh",
+                BUILD_SCRIPT.format(extra="ubuntu-keyring" if base.id == "ubuntu" else ""),
+                executable=True,
+            )
+        )
         return written
 
     def build(

@@ -35,6 +35,7 @@ PACKAGES = [
     "mtools",
     "efibootmgr",
     "grub",
+    "syslinux",
     "arch-install-scripts",
     "xorg-server",
     "xorg-xinit",
@@ -82,6 +83,30 @@ Include = /etc/pacman.d/mirrorlist
 
 [extra]
 Include = /etc/pacman.d/mirrorlist
+"""
+
+SYSLINUX_CFG = """
+DEFAULT arch
+PROMPT 0
+TIMEOUT 150
+
+LABEL arch
+MENU LABEL {product}
+LINUX /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux
+INITRD /%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img
+APPEND archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% %KERNEL_PARAMS%
+"""
+
+LOADER_CONF = """
+timeout 10
+default 01-distroforge.conf
+"""
+
+ENTRY_CONF = """
+title    {product} (UEFI)
+linux    /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux
+initrd   /%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img
+options  archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% %KERNEL_PARAMS%
 """
 
 BUILD_SCRIPT = """\
@@ -196,6 +221,19 @@ class ArchisoBuilder(Builder):
             )
         )
         written.append(self._write(target / "pacman.conf", PACMAN_CONF))
+        written.append(
+            self._write(
+                target / "syslinux" / "syslinux.cfg",
+                SYSLINUX_CFG.format(product=profile.product_name),
+            )
+        )
+        written.append(self._write(target / "efiboot" / "loader" / "loader.conf", LOADER_CONF))
+        written.append(
+            self._write(
+                target / "efiboot" / "loader" / "entries" / "01-distroforge.conf",
+                ENTRY_CONF.format(product=profile.product_name),
+            )
+        )
         written.append(self._write(target / "packages.x86_64", "\n".join(PACKAGES) + "\n"))
 
         airootfs = target / "airootfs"

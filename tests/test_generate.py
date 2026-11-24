@@ -166,6 +166,19 @@ def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     assert "calamares" in packages
 
 
+def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orchestrator):
+    profile = Profile(name="Ubu", base="ubuntu", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+
+    config = (root / "auto" / "config").read_text(encoding="utf-8")
+    assert "--mode ubuntu" in config
+    assert "--distribution noble" in config
+    assert "archive.ubuntu.com" in config
+
+    build = (root / "build.sh").read_text(encoding="utf-8")
+    assert "ubuntu-keyring" in build
+
+
 def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
     tmp_path, orchestrator: Orchestrator, profile: Profile
 ):

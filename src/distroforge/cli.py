@@ -107,7 +107,7 @@ def cmd_init(args: argparse.Namespace) -> int:
         name=args.name,
         version=args.version_name,
         base=base.id,
-        variant=args.variant or base.codename,
+        variant=args.variant or base.build_codename,
         arch=args.arch,
         install_mode=args.install_mode,
         desktop=args.desktop,
