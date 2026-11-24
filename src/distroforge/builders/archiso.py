@@ -37,6 +37,7 @@ PACKAGES = [
     "grub",
     "syslinux",
     "arch-install-scripts",
+    "archiso",
     "xorg-server",
     "xorg-xinit",
     "xterm",
