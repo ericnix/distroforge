@@ -26,9 +26,11 @@ LIVE_PACKAGES = [
     "efibootmgr",
     "os-prober",
     "sudo",
-    # o sistema instalado precisa destes para o bootloader do Calamares
-    "grub-pc",
-    "grub-efi-amd64",
+    # o sistema instalado precisa destes para o bootloader do Calamares.
+    # grub-pc e grub-efi-amd64 conflitam entre si; os *-bin convivem.
+    "grub-common",
+    "grub-pc-bin",
+    "grub-efi-amd64-bin",
     "grub-efi-amd64-signed",
     "shim-signed",
     # rede e firmware (netinstall sem Wi-Fi é inútil)
@@ -139,6 +141,9 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ "$(id -u)" -ne 0 ]; then
     echo "DistroForge: o instalador já falhou uma vez; shell liberado para debug."
   else
     : > /tmp/distroforge-x-tentado
+    if [ -z "$XDG_RUNTIME_DIR" ] && [ -d "/run/user/$(id -u)" ]; then
+      export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    fi
     echo "DistroForge: iniciando o instalador..."
     exec xinit /usr/local/bin/distroforge-session -- :0 vt1
   fi
