@@ -86,7 +86,7 @@ SESSION_HOOK = """\
 # gerado pelo DistroForge — autostart do Calamares na sessão live (PoC)
 set -e
 
-# autologin na tty1 para o usuário criado pelo live-config
+# 1) autologin na tty1
 install -d /etc/systemd/system/getty@tty1.service.d
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<'EOF'
 [Service]
@@ -94,7 +94,36 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin user --noclear %I $TERM
 EOF
 
-# ao logar na tty1, sobe o X; o .xinitrc abre o instalador
+# 2) sudo sem senha (não depende do live-config)
+cat > /etc/sudoers.d/90-distroforge <<'EOF'
+Defaults env_keep += "DISPLAY XAUTHORITY XDG_RUNTIME_DIR"
+user ALL=(ALL) NOPASSWD: SETENV: ALL
+EOF
+chown root:root /etc/sudoers.d/90-distroforge
+chmod 0440 /etc/sudoers.d/90-distroforge
+
+# 3) cliente X que abre o instalador como root
+cat > /usr/local/bin/distroforge-session <<'EOF'
+#!/bin/sh
+exec sudo -E calamares
+EOF
+chmod 0755 /usr/local/bin/distroforge-session
+
+# 4) startx em qualquer shell de login (bash, dash, zsh) + trava de 1 tentativa
+cat > /etc/profile.d/zz-distroforge-startx.sh <<'EOF'
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ "$(id -u)" -ne 0 ]; then
+  if [ -e /run/distroforge-x-tentado ]; then
+    echo "DistroForge: o instalador já falhou uma vez; shell liberado para debug."
+  else
+    : > /run/distroforge-x-tentado
+    echo "DistroForge: iniciando o instalador..."
+    exec xinit /usr/local/bin/distroforge-session -- :0 vt1
+  fi
+fi
+EOF
+chmod 0644 /etc/profile.d/zz-distroforge-startx.sh
+
+# 5) atalhos para uma sessão interativa
 cat >> /etc/skel/.bash_profile <<'EOF'
 
 # DistroForge: abre o instalador na sessão live
@@ -103,7 +132,6 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
 fi
 EOF
 
-# Calamares precisa de root; o usuário live tem sudo sem senha
 cat > /etc/skel/.xinitrc <<'EOF'
 #!/bin/sh
 exec sudo -E calamares
