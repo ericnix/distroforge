@@ -86,6 +86,9 @@ Include = /etc/pacman.d/mirrorlist
 """
 
 MKINITCPIO_CONF = """\
+MODULES=()
+BINARIES=()
+FILES=()
 HOOKS=(base udev microcode modconf memdisk archiso archiso_loop_mnt archiso_pxe_common archiso_pxe_nbd archiso_pxe_http archiso_pxe_nfs block filesystems keyboard)
 COMPRESSION="xz"
 COMPRESSION_OPTIONS=(-9e)
@@ -100,7 +103,7 @@ LABEL arch
 MENU LABEL {product}
 LINUX /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux
 INITRD /%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img
-APPEND archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% %KERNEL_PARAMS%
+APPEND archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% console=ttyS0,115200 %KERNEL_PARAMS%
 """
 
 LOADER_CONF = """
@@ -112,7 +115,7 @@ ENTRY_CONF = """
 title    {product} (UEFI)
 linux    /%INSTALL_DIR%/boot/%ARCH%/vmlinuz-linux
 initrd   /%INSTALL_DIR%/boot/%ARCH%/initramfs-linux.img
-options  archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% %KERNEL_PARAMS%
+options  archisobasedir=%INSTALL_DIR% archisosearchuuid=%ARCHISO_UUID% console=ttyS0,115200 %KERNEL_PARAMS%
 """
 
 BUILD_SCRIPT = """#!/usr/bin/env bash
@@ -263,7 +266,7 @@ class ArchisoBuilder(Builder):
             written.extend(sorted(path for path in airootfs.rglob("*") if path.is_file()))
         written.append(
             self._write(
-                airootfs / "etc" / "mkinitcpio.conf.d" / "archiso.conf",
+                airootfs / "etc" / "mkinitcpio.conf",
                 MKINITCPIO_CONF,
             )
         )
