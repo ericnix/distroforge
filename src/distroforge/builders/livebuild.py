@@ -123,20 +123,24 @@ EOF
 cat > /usr/local/bin/distroforge-session <<'EOF'
 #!/bin/sh
 export QT_QPA_PLATFORM=xcb
-exec sudo -E QT_QPA_PLATFORM=xcb calamares
+# a saída vai para o console serial (root pode abrir /dev/ttyS0)
+exec sudo -E sh -c '
+  echo "== distroforge: iniciando calamares ==" >/dev/ttyS0
+  calamares -d >>/dev/ttyS0 2>&1
+  echo "== distroforge: calamares saiu com $? ==" >/dev/ttyS0
+'
 EOF
 chmod 0755 /usr/local/bin/distroforge-session
 
 # 4) startx em qualquer shell de login (bash, dash, zsh) + trava de 1 tentativa
 cat > /etc/profile.d/zz-distroforge-startx.sh <<'EOF'
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ "$(id -u)" -ne 0 ]; then
-  if [ -e /run/distroforge-x-tentado ]; then
+  if [ -e /tmp/distroforge-x-tentado ]; then
     echo "DistroForge: o instalador já falhou uma vez; shell liberado para debug."
   else
-    : > /run/distroforge-x-tentado
+    : > /tmp/distroforge-x-tentado
     echo "DistroForge: iniciando o instalador..."
-    # a saída vai para o console serial, onde o teste de boot consegue ler
-    exec xinit /usr/local/bin/distroforge-session -- :0 vt1 >>/dev/ttyS0 2>&1
+    exec xinit /usr/local/bin/distroforge-session -- :0 vt1
   fi
 fi
 EOF
