@@ -5,8 +5,9 @@ programas, e gere uma ISO **netinstall** com instalador. O sistema instalado atu
 dos repositórios da própria base — é remaster com instalador, não uma distro
 independente.
 
-> **Status:** o site (este repositório) está pronto. O aplicativo desktop (PySide6) e o
-> motor de build estão em planejamento — veja [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** o site (este repositório) está pronto e publicado em
+> **https://distroforge-site.pages.dev**. O aplicativo desktop (PySide6) e o motor de build
+> estão em planejamento — veja [`docs/PLAN.md`](docs/PLAN.md).
 
 ## O que tem aqui
 
@@ -40,10 +41,14 @@ npm run preview    # serve o dist localmente
 
 ## Publicar no Cloudflare Pages
 
+O projeto está publicado em **https://distroforge-site.pages.dev**
+(projeto `distroforge-site`; o nome `distroforge` já pertence a outra conta no
+subdomínio `pages.dev`).
+
 ### Opção A — integração com o GitHub (recomendado)
 
-1. No painel do Cloudflare, vá em **Workers & Pages → Create → Pages → Connect to Git**.
-2. Selecione o repositório `distroforge`.
+1. No painel do Cloudflare, vá em **Workers & Pages → distroforge-site → Settings → Build**.
+2. Clique em **Connect to Git** e selecione o repositório `distroforge`.
 3. Configure o build:
 
    | Campo | Valor |
@@ -63,7 +68,7 @@ O `prebuild` cuida da exportação do catálogo, então não existe passo extra 
 ```bash
 cd site
 npm run build
-npx wrangler pages deploy dist --project-name distroforge
+npx wrangler pages deploy dist --project-name distroforge-site
 ```
 
 Na primeira vez o Wrangler pede login no navegador (ou use `CLOUDFLARE_API_TOKEN`).
