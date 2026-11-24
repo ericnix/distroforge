@@ -142,10 +142,10 @@ fi
 
 echo "==> adaptando pacstrap/arch-chroot para podman rootless"
 for f in /usr/bin/arch-chroot /usr/bin/pacstrap; do
-  sed -i 's|chroot_add_mount udev "$1/dev" -t devtmpfs -o mode=0755,nosuid|chroot_add_mount /dev "$1/dev" --rbind|' "$f"
+  sed -i 's|chroot_add_mount udev "$1/dev" -t devtmpfs -o mode=0755,nosuid|chroot_add_mount /dev "$1/dev" --bind|' "$f"
   sed -i 's|chroot_add_mount devpts "$1/dev/pts" -t devpts -o mode=0620,gid=5,nosuid,noexec|true|' "$f"
   sed -i 's|chroot_add_mount shm "$1/dev/shm" -t tmpfs -o mode=1777,nosuid,nodev|true|' "$f"
-  sed -i 's|chroot_add_mount sys "$1/sys" -t sysfs -o nosuid,noexec,nodev,ro|chroot_add_mount /sys "$1/sys" --rbind|' "$f"
+  sed -i 's|chroot_add_mount sys "$1/sys" -t sysfs -o nosuid,noexec,nodev,ro|chroot_add_mount /sys "$1/sys" --bind|' "$f"
 done
 
 echo "==> publicando repositório local"
