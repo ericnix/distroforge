@@ -128,6 +128,8 @@ def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile)
     assert (branding.parent / "logo.png").is_file()
     assert (branding.parent / "welcome.png").is_file()
     assert (branding.parent / "screenshot.png").is_file()
+    show = (branding.parent / "show.qml").read_text(encoding="utf-8")
+    assert "Instalando PoC 1.0" in show
 
 
 def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):

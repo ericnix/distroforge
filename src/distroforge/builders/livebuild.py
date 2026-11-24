@@ -154,14 +154,6 @@ fi
 EOF
 chmod 0644 /etc/profile.d/zz-distroforge-startx.sh
 
-# 6) o slideshow do Calamares é obrigatório; reaproveita o QML do tema padrão
-BRANDING=/usr/share/calamares/branding/__SLUG__
-if [ -d "$BRANDING" ] && [ ! -f "$BRANDING/show.qml" ]; then
-  if [ -f /usr/share/calamares/branding/default/show.qml ]; then
-    cp /usr/share/calamares/branding/default/show.qml "$BRANDING/show.qml"
-  fi
-fi
-
 # 5) atalhos para uma sessão interativa
 cat >> /etc/skel/.bash_profile <<'EOF'
 

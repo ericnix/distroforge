@@ -56,8 +56,43 @@ EXEC_SEQUENCE = [
     "umount",
 ]
 
-DESKTOP_TEMPLATE = """\
-[Desktop Entry]
+
+SHOW_QML = """import QtQuick
+
+Rectangle {{
+    id: root
+    color: "{color}"
+
+    Column {{
+        anchors.centerIn: parent
+        spacing: 18
+
+        Text {{
+            anchors.horizontalCenter: parent.horizontalCenter
+            color: "#7aa7ff"
+            font.pixelSize: 15
+            font.letterSpacing: 2
+            text: "DISTROFORGE"
+        }}
+
+        Text {{
+            anchors.horizontalCenter: parent.horizontalCenter
+            color: "#e9ecf5"
+            font.pixelSize: 22
+            text: qsTr("Instalando {product}…")
+        }}
+
+        Text {{
+            anchors.horizontalCenter: parent.horizontalCenter
+            color: "#6f788d"
+            font.pixelSize: 13
+            text: qsTr("Isso pode levar alguns minutos.")
+        }}
+    }}
+}}
+"""
+
+DESKTOP_TEMPLATE = """[Desktop Entry]
 Type=Application
 Name=Instalar {product}
 Comment=Instalar {product} no computador
@@ -267,7 +302,7 @@ class CalamaresInstaller(Installer):
 
     @staticmethod
     def _branding_images(profile: Profile, branding: Path) -> list[Path]:
-        """Escreve logo, tela de boas-vindas e miniatura do chooser."""
+        """Escreve logo, boas-vindas, miniatura e o QML do slideshow."""
         branding.mkdir(parents=True, exist_ok=True)
         images = {
             "logo.png": gradient_png(
@@ -285,6 +320,13 @@ class CalamaresInstaller(Installer):
             path = branding / name
             path.write_bytes(payload)
             written.append(path)
+
+        show = branding / "show.qml"
+        show.write_text(
+            SHOW_QML.format(color="#0b0f1a", product=profile.product_name),
+            encoding="utf-8",
+        )
+        written.append(show)
         return written
 
     # ------------------------------------------------------------ helpers
