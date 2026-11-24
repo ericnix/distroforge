@@ -62,6 +62,15 @@ o diretório de saída fora de `/tmp` (que costuma ser tmpfs) — a instalação
 grava vários GB no disco da VM. O progresso da fase 0 está em
 [`docs/FASE0.md`](docs/FASE0.md).
 
+Para exercitar o instalador inteiro (partição → usuário → desktop → netinstall):
+
+```bash
+uv pip install vncdotool
+python3 scripts/qemu-install-test.py out/minha-distro-1.0-amd64.iso
+```
+
+O script dirige o Calamares por VNC e salva cada tela em `vm/shots/`.
+
 Fedora e openSUSE ainda param com mensagem clara: os adapters Anaconda e Agama
 entram nas fases 5 e 6.
 

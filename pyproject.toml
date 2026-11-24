@@ -14,6 +14,7 @@ dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+vm = ["vncdotool>=1.4"]
 
 [project.scripts]
 distroforge = "distroforge.cli:main"
