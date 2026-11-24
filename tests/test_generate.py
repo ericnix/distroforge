@@ -44,7 +44,11 @@ def test_gera_arvore_live_build(tmp_path, orchestrator: Orchestrator, profile: P
     config = (root / "auto" / "config").read_text(encoding="utf-8")
     assert "--distribution trixie" in config
     assert "--binary-images iso-hybrid" in config
-    assert "--bootloader-timeout 5" in config
+
+    menu = (root / "config" / "bootloaders" / "isolinux" / "isolinux.cfg").read_text(
+        encoding="utf-8"
+    )
+    assert "timeout 50" in menu
 
 
 def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Profile):

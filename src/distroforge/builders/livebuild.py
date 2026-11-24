@@ -38,8 +38,15 @@ LIVE_PACKAGES = [
     "openbox",
 ]
 
-AUTO_CONFIG = """\
-#!/bin/sh
+# O live-build (1:20250505) não expõe opção de timeout de menu; sobrescrever o
+# template é o mecanismo documentado. timeout é em décimos de segundo.
+BOOTLOADER_ISOLINUX_CFG = """include menu.cfg
+default vesamenu.c32
+prompt 0
+timeout 50
+"""
+
+AUTO_CONFIG = """#!/bin/sh
 # gerado pelo DistroForge — não edite à mão
 set -e
 lb config noauto \\
@@ -53,15 +60,13 @@ lb config noauto \\
   --apt-indices false \\
   --firmware-chroot true \\
   --bootappend-live "boot=live components quiet splash autologin" \\
-  --bootloader-timeout 5 \\
   --iso-application "{application}" \\
   --iso-publisher "{publisher}" \\
   --iso-volume "{volume}" \\
   "$@"
 """
 
-BUILD_SCRIPT = """\
-#!/usr/bin/env bash
+BUILD_SCRIPT = """#!/usr/bin/env bash
 # gerado pelo DistroForge — roda dentro do container Debian
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -81,8 +86,7 @@ echo "==> pronto"
 ls -lh /build/*.iso
 """
 
-SESSION_HOOK = """\
-#!/bin/sh
+SESSION_HOOK = """#!/bin/sh
 # gerado pelo DistroForge — autostart do Calamares na sessão live (PoC)
 set -e
 
@@ -166,6 +170,13 @@ class LiveBuildBuilder(Builder):
                     volume=iso_volume_label(profile.hostname),
                 ),
                 executable=True,
+            )
+        )
+
+        written.append(
+            self._write(
+                workdir / "config" / "bootloaders" / "isolinux" / "isolinux.cfg",
+                BOOTLOADER_ISOLINUX_CFG,
             )
         )
 
