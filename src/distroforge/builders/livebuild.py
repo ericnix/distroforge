@@ -33,9 +33,11 @@ LIVE_PACKAGES = [
     "firmware-atheros",
     # sessão gráfica mínima para o Calamares
     "xserver-xorg",
+    "xserver-xorg-legacy",
     "xinit",
     "xterm",
     "openbox",
+    "dbus",
 ]
 
 # O live-build (1:20250505) não expõe opção de timeout de menu; sobrescrever o
@@ -59,7 +61,7 @@ lb config noauto \\
   --memtest none \\
   --apt-indices false \\
   --firmware-chroot true \\
-  --bootappend-live "boot=live components quiet splash autologin" \\
+  --bootappend-live "boot=live components quiet splash autologin console=ttyS0,115200 systemd.journald.forward_to_console=1" \\
   --iso-application "{application}" \\
   --iso-publisher "{publisher}" \\
   --iso-volume "{volume}" \\
@@ -106,10 +108,17 @@ EOF
 chown root:root /etc/sudoers.d/90-distroforge
 chmod 0440 /etc/sudoers.d/90-distroforge
 
-# 3) cliente X que abre o instalador como root
+# 3) X pode rodar como usuário comum mesmo sem seat do logind
+cat > /etc/X11/Xwrapper.config <<'EOF'
+allowed_users=anybody
+needs_root_rights=yes
+EOF
+
+# 3b) cliente X que abre o instalador como root
 cat > /usr/local/bin/distroforge-session <<'EOF'
 #!/bin/sh
-exec sudo -E calamares
+export QT_QPA_PLATFORM=xcb
+exec sudo -E QT_QPA_PLATFORM=xcb calamares
 EOF
 chmod 0755 /usr/local/bin/distroforge-session
 
@@ -121,7 +130,8 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ "$(id -u)" -ne 0 ]; then
   else
     : > /run/distroforge-x-tentado
     echo "DistroForge: iniciando o instalador..."
-    exec xinit /usr/local/bin/distroforge-session -- :0 vt1
+    # a saída vai para o console serial, onde o teste de boot consegue ler
+    exec xinit /usr/local/bin/distroforge-session -- :0 vt1 >>/dev/ttyS0 2>&1
   fi
 fi
 EOF
