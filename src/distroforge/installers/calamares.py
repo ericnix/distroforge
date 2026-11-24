@@ -8,6 +8,7 @@ módulos que já vêm no pacote ``calamares``.
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from typing import Any
 
@@ -49,12 +50,16 @@ EXEC_SEQUENCE = [
     "networkcfg",
     "hwclock",
     "services-systemd",
-    "packagechooser",
     "netinstall",
     "packages",
     "bootloader",
     "umount",
 ]
+
+# Placeholder 160x90 usado como screenshot dos itens do packagechooser.
+SCREENSHOT_PNG_B64 = (
+    "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"
+)
 
 DESKTOP_TEMPLATE = """\
 [Desktop Entry]
@@ -116,10 +121,14 @@ class CalamaresInstaller(Installer):
         written.append(
             self._write_yaml(
                 modules / "netinstall.conf",
-                {"groupsUrl": "/etc/calamares/netinstall.yaml"},
+                {"groupsUrl": "file:///etc/calamares/netinstall.yaml"},
             )
         )
         written.append(self._write_yaml(branding / "branding.desc", self._branding(profile)))
+        shot = branding / "screenshot.png"
+        shot.parent.mkdir(parents=True, exist_ok=True)
+        shot.write_bytes(base64.b64decode(SCREENSHOT_PNG_B64))
+        written.append(shot)
         written.append(
             self._write(
                 overlay / "usr" / "share" / "applications" / "install-distro.desktop",
@@ -155,20 +164,29 @@ class CalamaresInstaller(Installer):
     def _packagechooser(
         self, profile: Profile, resolution: Resolution, catalog: Catalog
     ) -> dict[str, Any]:
-        labels = []
+        items = []
         for item in catalog.graphical_for(resolution.base.id):
             size = item.size_for(resolution.base.id)
             description = item.summary
             if size:
                 description = f"{description} ({_fmt_mb(size)})"
-            labels.append(
+            items.append(
                 {
+                    "id": item.id,
                     "name": item.label,
                     "description": description,
                     "packages": item.packages(resolution.base.id),
+                    "screenshot": "screenshot.png",
                 }
             )
-        return {"id": "desktop", "labels": labels}
+        # mode/method são obrigatórios no Calamares 3.3; com method=packages
+        # a escolha é entregue ao módulo packages do exec.
+        return {
+            "mode": "required",
+            "method": "packages",
+            "labels": {"step": "Desktop"},
+            "items": items,
+        }
 
     def _netinstall_groups(
         self, profile: Profile, resolution: Resolution, catalog: Catalog
@@ -199,9 +217,10 @@ class CalamaresInstaller(Installer):
             groups.append(
                 {
                     "name": str(category.get("label", category_id)),
-                    "description": "",
+                    "description": str(category.get("label", category_id)),
+                    "selected": False,
                     "expanded": any(app.id in chosen for app in apps),
-                    "subcategories": subcategories,
+                    "subgroups": subcategories,
                 }
             )
 

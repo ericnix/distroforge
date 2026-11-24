@@ -60,6 +60,7 @@ def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Pr
 
     assert "packagechooser" in show
     assert "netinstall" in show
+    assert "packagechooser" not in execute
     assert "unpackfs" in execute
     assert execute.index("unpackfs") < execute.index("bootloader")
     assert data["branding"] == profile.hostname
@@ -73,13 +74,16 @@ def test_packagechooser_lista_desktops_da_base(
         _calamares(root, "modules/packagechooser.conf").read_text(encoding="utf-8")
     )
 
-    names = [label["name"] for label in data["labels"]]
+    names = [item["name"] for item in data["items"]]
     assert "KDE Plasma" in names
     assert "Hyprland" not in names  # indisponível no Debian
     assert len(names) == len(Catalog.locate().graphical_for("debian"))
+    assert data["mode"] == "required"
+    assert data["method"] == "packages"
 
-    kde = next(label for label in data["labels"] if label["name"] == "KDE Plasma")
+    kde = next(item for item in data["items"] if item["name"] == "KDE Plasma")
     assert kde["packages"] == ["task-kde-desktop"]
+    assert kde["screenshot"] == "screenshot.png"
 
 
 def test_netinstall_marca_apps_escolhidos(
@@ -91,12 +95,15 @@ def test_netinstall_marca_apps_escolhidos(
     subcategories = {
         item["name"]: item
         for group in groups
-        for item in group["subcategories"]
+        for item in group.get("subgroups", [])
     }
     assert subcategories["Firefox"]["selected"] is True
     assert subcategories["Git"]["selected"] is True
     assert subcategories["Steam"]["selected"] is False
     assert subcategories["Firefox"]["packages"] == ["firefox-esr"]
+
+    # grupos de topo não vêm marcados (senão instalaria tudo)
+    assert all(group["selected"] is False for group in groups)
 
 
 def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile):
