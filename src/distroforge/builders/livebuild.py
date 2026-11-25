@@ -70,6 +70,11 @@ MIRRORS = {
     "ubuntu": "http://archive.ubuntu.com/ubuntu/",
 }
 
+SECURITY_MIRRORS = {
+    "debian": "http://security.debian.org/debian-security",
+    "ubuntu": "http://security.ubuntu.com/ubuntu/",
+}
+
 AUTO_CONFIG = """#!/bin/sh
 # gerado pelo DistroForge — não edite à mão
 set -e
@@ -78,6 +83,10 @@ lb config noauto \\
   --distribution {distribution} \\
   --mirror-bootstrap {mirror} \\
   --mirror-chroot {mirror} \\
+  --mirror-chroot-security {security} \\
+  --parent-mirror-bootstrap {mirror} \\
+  --parent-mirror-chroot {mirror} \\
+  --parent-mirror-chroot-security {security} \\
   --architectures {arch} \\
   --binary-images iso-hybrid \\
   --archive-areas "{areas}" \\
@@ -85,7 +94,7 @@ lb config noauto \\
   --debian-installer none \\
   --memtest none \\
   --apt-indices true \\
-  --firmware-chroot true \\
+  --firmware-chroot {firmware} \\
   --bootappend-live "boot=live components quiet splash autologin console=ttyS0,115200 systemd.journald.forward_to_console=1" \\
   --iso-application "{application}" \\
   --iso-publisher "{publisher}" \\
@@ -192,6 +201,7 @@ class LiveBuildBuilder(Builder):
         distribution = profile.variant or base.build_codename
         mode = "ubuntu" if base.id == "ubuntu" else "debian"
         mirror = MIRRORS.get(base.id, MIRRORS["debian"])
+        security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
         written: list[Path] = []
 
         written.append(
@@ -202,6 +212,8 @@ class LiveBuildBuilder(Builder):
                     areas=ARCHIVE_AREAS.get(base.id, ARCHIVE_AREAS["debian"]),
                     distribution=distribution,
                     mirror=mirror,
+                    security=security,
+                    firmware="true" if base.id == "debian" else "false",
                     arch=profile.arch,
                     application=profile.name,
                     publisher=f"DistroForge — {profile.name}",
