@@ -91,7 +91,7 @@ lb config noauto \\
   --binary-images iso-hybrid \\
   --archive-areas "{areas}" \\
   --bootloaders "syslinux,grub-efi" \\
-  --debian-installer none \\
+{extra_options}  --debian-installer none \\
   --memtest none \\
   --apt-indices true \\
   --firmware-chroot {firmware} \\
@@ -202,6 +202,12 @@ class LiveBuildBuilder(Builder):
         mode = "ubuntu" if base.id == "ubuntu" else "debian"
         mirror = MIRRORS.get(base.id, MIRRORS["debian"])
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
+        # Ubuntu minbase não traz gpgv; sem ele o apt do chroot não valida o InRelease
+        extra_options = (
+            '  --debootstrap-options "--include=gpgv" \\\n'
+            if base.id == "ubuntu"
+            else ""
+        )
         written: list[Path] = []
 
         written.append(
@@ -213,6 +219,7 @@ class LiveBuildBuilder(Builder):
                     distribution=distribution,
                     mirror=mirror,
                     security=security,
+                    extra_options=extra_options,
                     firmware="true" if base.id == "debian" else "false",
                     arch=profile.arch,
                     application=profile.name,
