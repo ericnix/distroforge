@@ -1,8 +1,8 @@
 # Fase 3 — Arch Linux e Ubuntu
 
-> Status: **Arch**: ISO gerada, boot live para no `switch_root`.
-> **Ubuntu**: build avança até o fim dos pacotes, mas quebra na limpeza do
-> `live-build` (sources.list malformado). Ambos documentados abaixo.
+> Status: **Ubuntu validado** — ISO de 1,4 GB boota, autologin funciona,
+> Calamares abre com o branding e a tela de partições reconhece o disco.
+> **Arch**: ISO gerada, boot live para no `switch_root` (pendente).
 
 ## Arch Linux
 
