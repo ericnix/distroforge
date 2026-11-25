@@ -55,6 +55,12 @@ prompt 0
 timeout 50
 """
 
+UBUNTU_SOURCES = """\
+deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse
+"""
+
 FIRMWARE = {
     "debian": ["firmware-iwlwifi", "firmware-realtek", "firmware-atheros"],
     "ubuntu": ["linux-firmware"],
@@ -94,6 +100,7 @@ lb config noauto \\
 {extra_options}  --debian-installer none \\
   --memtest none \\
   --apt-indices true \\
+  --apt-secure {apt_secure} \\
   --firmware-chroot {firmware} \\
   --bootappend-live "boot=live components quiet splash autologin console=ttyS0,115200 systemd.journald.forward_to_console=1" \\
   --iso-application "{application}" \\
@@ -217,6 +224,7 @@ class LiveBuildBuilder(Builder):
                     security=security,
                     extra_options=extra_options,
                     firmware="true" if base.id == "debian" else "false",
+                    apt_secure="true" if base.id == "debian" else "false",
                     arch=profile.arch,
                     application=profile.name,
                     publisher=f"DistroForge — {profile.name}",
@@ -242,6 +250,15 @@ class LiveBuildBuilder(Builder):
         )
 
         includes = workdir / "config" / "includes.chroot"
+        if base.id == "ubuntu":
+            # o build usa apt-secure=false (apt-key não roda no userns);
+            # o sistema instalado recebe repositórios assinados normais.
+            written.append(
+                self._write(
+                    includes / "etc" / "apt" / "sources.list",
+                    UBUNTU_SOURCES,
+                )
+            )
         if overlay.is_dir():
             shutil.copytree(overlay, includes, dirs_exist_ok=True)
             written.extend(sorted(path for path in includes.rglob("*") if path.is_file()))

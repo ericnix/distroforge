@@ -185,6 +185,14 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     build = (root / "build.sh").read_text(encoding="utf-8")
     assert "ubuntu-keyring" in build
 
+    # o build desliga apt-secure (userns), mas o alvo recebe fontes assinadas
+    assert "--apt-secure false" in config
+    sources = (
+        root / "config" / "includes.chroot" / "etc" / "apt" / "sources.list"
+    ).read_text(encoding="utf-8")
+    assert "noble-security" in sources
+    assert "trusted=yes" not in sources
+
 
 def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
     tmp_path, orchestrator: Orchestrator, profile: Profile
