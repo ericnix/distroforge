@@ -175,6 +175,7 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "--distribution noble" in config
     assert "archive.ubuntu.com" in config
     assert "main restricted universe multiverse" in config
+    assert "--linux-flavours generic" in config
 
     packages = (
         root / "config" / "package-lists" / "00-distroforge.list.chroot"

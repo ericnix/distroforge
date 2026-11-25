@@ -209,8 +209,13 @@ class LiveBuildBuilder(Builder):
         mode = "ubuntu" if base.id == "ubuntu" else "debian"
         mirror = MIRRORS.get(base.id, MIRRORS["debian"])
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
-        # Ubuntu minbase não traz gpgv; incluir é inofensivo no Debian também.
-        extra_options = '  --debootstrap-options "--include=gpgv,gnupg" \\\n' 
+        # Ubuntu minbase não traz gpgv/gnupg e usa kernel "generic".
+        extra_options = '  --debootstrap-options "--include=gpgv,gnupg" \\\n'
+        if base.id == "ubuntu":
+            extra_options += (
+                '  --linux-packages "linux-image linux-headers" \\\n'
+                '  --linux-flavours generic \\\n'
+            )
         written: list[Path] = []
 
         written.append(
