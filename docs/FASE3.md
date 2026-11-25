@@ -82,6 +82,17 @@ lb config --mode ubuntu --distribution noble \
 | verificação de assinatura falha mesmo assim | `--apt-secure false` no build; `sources.list` limpo é sobrescrito no overlay |
 | `dictionaries-common` falha no postinst | `--apt-recommends false` |
 
+### Pendência final do Ubuntu: initramfs sem drivers de disco
+
+A ISO boota, o `user-setup` cria o usuário e o Calamares abre com o branding.
+Mas o instalador não enxerga nenhum disco: o `initrd.img` do live foi gerado em
+modo **`dep`** (só o hardware do container, `ahci`), sem `virtio_blk` nem
+`ata_piix`.
+
+Correção proposta: um hook `*.hook.chroot` que force
+`MODULES=most` em `/etc/initramfs-tools/initramfs.conf` e rode
+`update-initramfs -u -k all` **depois** dos includes e antes do empacotamento.
+
 ### Causa do `sources.list` vazio (confirmada)
 
 No fim do build, `lb chroot_archives remove` executa
