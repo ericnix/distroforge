@@ -202,12 +202,8 @@ class LiveBuildBuilder(Builder):
         mode = "ubuntu" if base.id == "ubuntu" else "debian"
         mirror = MIRRORS.get(base.id, MIRRORS["debian"])
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
-        # Ubuntu minbase não traz gpgv; sem ele o apt do chroot não valida o InRelease
-        extra_options = (
-            '  --debootstrap-options "--include=gpgv" \\\n'
-            if base.id == "ubuntu"
-            else ""
-        )
+        # Ubuntu minbase não traz gpgv; incluir é inofensivo no Debian também.
+        extra_options = '  --debootstrap-options "--include=gpgv" \\\n' 
         written: list[Path] = []
 
         written.append(
