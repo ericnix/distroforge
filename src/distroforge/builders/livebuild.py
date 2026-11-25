@@ -28,6 +28,8 @@ LIVE_PACKAGES = [
     "squashfs-tools",
     "rsync",
     "parted",
+    # o backend de partição do Calamares usa sfdisk (pacote fdisk no Ubuntu)
+    "fdisk",
     "efibootmgr",
     "os-prober",
     "sudo",
