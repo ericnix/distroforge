@@ -82,16 +82,16 @@ lb config --mode ubuntu --distribution noble \
 | verificação de assinatura falha mesmo assim | `--apt-secure false` no build; `sources.list` limpo é sobrescrito no overlay |
 | `dictionaries-common` falha no postinst | `--apt-recommends false` |
 
-### Pendência do Ubuntu
+### Causa do `sources.list` vazio (confirmada)
 
-O build instala todos os pacotes, mas o `live-build` falha em
-`lb chroot_archives chroot remove`: ele restaura um `sources.list` com URI vazia
-(`deb  noble main ...`) e o apt aborta com "Malformed entry 1".
+No fim do build, `lb chroot_archives remove` executa
+`Create_apt_sources_list binary`, que usa **`LB_MIRROR_BINARY`**. Como só
+passávamos `--mirror-bootstrap` e `--mirror-chroot`, a variável ficava vazia e o
+arquivo saía como `deb  noble main restricted universe multiverse` — o apt
+abortava com "Malformed entry 1".
 
-Hipótese: o backup restaurado vem do debootstrap, que recebeu mirror vazio
-apesar de `--mirror-bootstrap`/`--parent-mirror-bootstrap`. Próximos passos:
-inspecionar `chroot_archives` do live-build, ou substituir o arquivo num hook
-`*.hook.chroot` imediatamente antes da limpeza.
+Correção: passar também `--mirror-binary`, `--mirror-binary-security` e os
+equivalentes `--parent-mirror-binary*`.
 
 ## Como reproduzir
 
