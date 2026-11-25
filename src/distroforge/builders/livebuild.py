@@ -94,7 +94,6 @@ lb config noauto \\
 {extra_options}  --debian-installer none \\
   --memtest none \\
   --apt-indices true \\
-  --apt-secure {apt_secure} \\
   --firmware-chroot {firmware} \\
   --bootappend-live "boot=live components quiet splash autologin console=ttyS0,115200 systemd.journald.forward_to_console=1" \\
   --iso-application "{application}" \\
@@ -204,7 +203,7 @@ class LiveBuildBuilder(Builder):
         mirror = MIRRORS.get(base.id, MIRRORS["debian"])
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
         # Ubuntu minbase não traz gpgv; incluir é inofensivo no Debian também.
-        extra_options = '  --debootstrap-options "--include=gpgv" \\\n' 
+        extra_options = '  --debootstrap-options "--include=gpgv,gnupg" \\\n' 
         written: list[Path] = []
 
         written.append(
@@ -218,7 +217,6 @@ class LiveBuildBuilder(Builder):
                     security=security,
                     extra_options=extra_options,
                     firmware="true" if base.id == "debian" else "false",
-                    apt_secure="true" if base.id == "debian" else "false",
                     arch=profile.arch,
                     application=profile.name,
                     publisher=f"DistroForge — {profile.name}",
