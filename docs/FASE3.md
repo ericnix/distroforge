@@ -82,7 +82,16 @@ lb config --mode ubuntu --distribution noble \
 | verificação de assinatura falha mesmo assim | `--apt-secure false` no build; `sources.list` limpo é sobrescrito no overlay |
 | `dictionaries-common` falha no postinst | `--apt-recommends false` |
 
-### Pendência final do Ubuntu: initramfs sem drivers de disco
+### Descobertas do live Ubuntu
+
+- `sfdisk` não vem no `util-linux` do Ubuntu: está no pacote **`fdisk`**, e o
+  backend `pmsfdiskbackendplugin` do Calamares depende dele. Sem `fdisk` o
+  instalador mostra "There are no partitions to install on" mesmo com disco.
+- o `initrd.img` do live foi gerado em modo **`dep`** (só `ahci`), então
+  `virtio_blk` não está nele; para testar em VM use disco AHCI ou force
+  `MODULES=most` + `update-initramfs`.
+
+### Pendência do initramfs
 
 A ISO boota, o `user-setup` cria o usuário e o Calamares abre com o branding.
 Mas o instalador não enxerga nenhum disco: o `initrd.img` do live foi gerado em
