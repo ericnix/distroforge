@@ -121,6 +121,29 @@ apt-get install -y --no-install-recommends \\
   wget ca-certificates git syslinux syslinux-common isolinux \\
   grub-efi-amd64-bin grub-pc-bin grub2-common {extra}
 
+echo "==> corrigindo /dev/null do chroot (userns nao permite mknod)"
+if [ -x /usr/sbin/debootstrap ] && [ ! -e /usr/sbin/debootstrap.real ]; then
+  mv /usr/sbin/debootstrap /usr/sbin/debootstrap.real
+  cat > /usr/sbin/debootstrap <<'WRAP'
+#!/bin/bash
+/usr/sbin/debootstrap.real "$@"
+rc=$?
+target=""
+for arg in "$@"; do
+  case "$arg" in
+    /*) if [ -d "$arg/etc" ] && [ -d "$arg/dev" ]; then target="$arg"; fi ;;
+  esac
+done
+if [ -n "$target" ] && [ -d "$target/dev" ]; then
+  rm -f "$target/dev/null"
+  : > "$target/dev/null"
+  mount --bind /dev/null "$target/dev/null" 2>/dev/null || true
+fi
+exit $rc
+WRAP
+  chmod +x /usr/sbin/debootstrap
+fi
+
 echo "==> lb build"
 cd /build
 lb build
