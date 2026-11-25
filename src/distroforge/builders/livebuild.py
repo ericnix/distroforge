@@ -23,6 +23,8 @@ LIVE_PACKAGES = [
     # configs de módulo (users, bootloader, packages, unpackfs, welcome...);
     # sobrescrevemos settings/packagechooser/netinstall/branding no overlay
     "calamares-settings-debian",
+    # o live-config usa user-setup para criar o usuário do live
+    "user-setup",
     "squashfs-tools",
     "rsync",
     "parted",
