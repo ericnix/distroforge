@@ -1,7 +1,8 @@
 # Fase 3 — Arch Linux e Ubuntu
 
-> Status: **build do Arch ok** (ISO de ~1 GB gerada), mas o boot live para no
-> `switch_root`. Ubuntu: geração de árvore pronta, build ainda não exercitado.
+> Status: **Arch**: ISO gerada, boot live para no `switch_root`.
+> **Ubuntu**: build avança até o fim dos pacotes, mas quebra na limpeza do
+> `live-build` (sources.list malformado). Ambos documentados abaixo.
 
 ## Arch Linux
 
@@ -69,6 +70,28 @@ lb config --mode ubuntu --distribution noble \
 - `ubuntu-keyring` no container de build
 - `calamares-settings-debian` existe no universo do Ubuntu, então a lista de
   pacotes do live é a mesma
+- kernel: `--linux-packages "linux-image linux-headers" --linux-flavours generic`
+- `--apt-recommends false` (dictionaries-common quebra o postinst no chroot)
+
+### Workarounds de container (user namespace)
+
+| Problema | Workaround |
+|---|---|
+| `apt-key` não escreve em `/dev/null` (arquivo comum, `mknod` proibido) | wrapper do `debootstrap` faz bind do `/dev/null` real |
+| `gpgv`/`gpg` ausentes no minbase | `--debootstrap-options "--include=gpgv,gnupg"` |
+| verificação de assinatura falha mesmo assim | `--apt-secure false` no build; `sources.list` limpo é sobrescrito no overlay |
+| `dictionaries-common` falha no postinst | `--apt-recommends false` |
+
+### Pendência do Ubuntu
+
+O build instala todos os pacotes, mas o `live-build` falha em
+`lb chroot_archives chroot remove`: ele restaura um `sources.list` com URI vazia
+(`deb  noble main ...`) e o apt aborta com "Malformed entry 1".
+
+Hipótese: o backup restaurado vem do debootstrap, que recebeu mirror vazio
+apesar de `--mirror-bootstrap`/`--parent-mirror-bootstrap`. Próximos passos:
+inspecionar `chroot_archives` do live-build, ou substituir o arquivo num hook
+`*.hook.chroot` imediatamente antes da limpeza.
 
 ## Como reproduzir
 
