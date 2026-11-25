@@ -93,6 +93,10 @@ lb config noauto \\
   --parent-mirror-bootstrap {mirror} \\
   --parent-mirror-chroot {mirror} \\
   --parent-mirror-chroot-security {security} \\
+  --mirror-binary {mirror} \\
+  --mirror-binary-security {security} \\
+  --parent-mirror-binary {mirror} \\
+  --parent-mirror-binary-security {security} \\
   --architectures {arch} \\
   --binary-images iso-hybrid \\
   --archive-areas "{areas}" \\
