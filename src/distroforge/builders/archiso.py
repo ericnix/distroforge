@@ -26,6 +26,10 @@ PACKAGES = [
     "systemd",
     "networkmanager",
     "iwd",
+    # o calamares do AUR linka libpython (módulos em Python) mas o PKGBUILD
+    # não declara python como dependência — sem isto o binário não sobe:
+    # `libpython3.14.so.1.0 => not found`
+    "python",
     "calamares",
     "squashfs-tools",
     "rsync",

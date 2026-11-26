@@ -141,6 +141,17 @@ def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile)
     assert "Instalando PoC 1.0" in show
 
 
+def test_arch_tem_python_para_os_modulos_do_calamares():
+    """O calamares do AUR linka libpython mas não declara a dependência.
+
+    Sem ``python`` o binário falha com ``libpython3.14.so.1.0 => not found``
+    e o Xorg sai com código 0 — a tela fica preta sem nenhum erro óbvio.
+    """
+    from distroforge.builders.archiso import PACKAGES
+
+    assert "python" in PACKAGES
+
+
 def test_arch_traz_os_arquivos_do_firstboot(tmp_path, orchestrator: Orchestrator):
     """O systemd-firstboot roda antes de sysinit.target e trava o boot.
 
