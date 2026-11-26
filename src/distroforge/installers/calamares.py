@@ -74,6 +74,41 @@ MISSING_MODULES: dict[str, set[str]] = {"arch": {"packagechooser"}}
 # já está validado de ponta a ponta.
 REMOVE_OPERATION = {"apt": "remove", "pacman": "try_remove"}
 
+# O AUR traz `internetCheckUrl: http://example.com` — uma URL só, e ela é
+# ponto único de falha: se o domínio não resolver (DNS da empresa, bloqueio
+# regional, quarentena), a página marca "not connected" e `hasInternet` fica
+# false para sempre. É `hasInternet` que libera o `pacman -Sy` do módulo
+# packages, então uma URL fora do ar derrubaria a instalação inteira com
+# "target not found" (o alvo sai do squashfs sem /var/lib/pacman/sync).
+# O Calamares aceita lista e considera a rede OK se qualquer uma responder.
+WELCOME_CONF = """\
+---
+showSupportUrl:         true
+showKnownIssuesUrl:     true
+showReleaseNotesUrl:    false
+showDonateUrl:          https://kde.org/community/donations/
+requirements:
+    requiredStorage:    5.5
+    requiredRam:        1.0
+    internetCheckUrl:
+        - https://distroforge-site.pages.dev
+        - https://archlinux.org
+        - http://example.org
+    check:
+        - storage
+        - ram
+        - power
+        - internet
+        - root
+        - screen
+    required:
+        - ram
+geoip:
+    style:    "none"
+    url:      "https://geoip.kde.org/v1/ubiquity"
+    selector: "CountryCode"
+"""
+
 
 SHOW_QML = """import QtQuick
 
@@ -240,6 +275,9 @@ class CalamaresInstaller(Installer):
                 )
             )
         if pkg_manager == "pacman":
+            # O AUR traz uma checagem de rede de URL única (não resolvia aqui
+            # e derrubava a instalação); a nossa aceita lista.
+            written.append(self._write(modules / "welcome.conf", WELCOME_CONF))
             # No Debian/Ubuntu o postinst do sddm habilita a própria unit; no
             # Arch o preset do systemd é `disable *` e ninguém habilita nada —
             # o sistema instalado subiria no getty, sem tela de login.

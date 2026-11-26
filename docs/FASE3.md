@@ -280,6 +280,54 @@ Nota de diagnóstico: o `plasma-meta` do Arch não puxa `sddm`, mas puxa
 `displaymanager.conf` do próprio pacote AUR já o lista — por isso a
 candidata correta é `plasmalogin.service`.
 
+### Uma URL só na checagem de rede é ponto único de falha
+
+Com a rede no ar e o `nm-online` antes do `xinit`, a página **continuava**
+marcando *"not connected to the Internet"*. A causa: a `welcome.conf` do
+AUR traz `internetCheckUrl: http://example.com` — **uma URL só**, e neste
+ambiente `example.com` simplesmente não resolve:
+
+```
+$ getent hosts example.com      →  (nada)
+$ curl -sI http://example.com   →  rc=000 em 88 ms
+$ curl -sI https://archlinux.org →  HTTP/2 200
+```
+
+O `welcome` marca `hasInternet=false` para sempre, e é `hasInternet` que
+libera o `update_db` (`pacman -Sy`) do módulo `packages`. Sem o `-Sy` o
+`pacman -S` do alvo falha com *"target not found"* — o squashfs sai sem
+`/var/lib/pacman/sync`. Ou seja: **um domínio fora do ar derrubaria a
+instalação inteira**, não só exibiria um aviso.
+
+Correção: geramos a `welcome.conf` nas bases pacman com `internetCheckUrl`
+como **lista** (`distroforge-site.pages.dev`, `archlinux.org`,
+`example.org`). O próprio Calamares documenta o recurso: as URLs são
+testadas em sequência e basta **uma** responder.
+
+O Debian/Ubuntu não tem o problema porque o `calamares-settings-debian`
+sequer inclui `internet` na lista `check`.
+
+### A rede tinha que estar no ar antes do X
+
+Com a fonte e os módulos certos, a página de boas-vindas apareceu com
+*"The system is not connected to the Internet"*. A rede **funcionava** —
+`nmcli` reportava `full`, DNS resolvia, `ens3` com `10.0.2.15` — só que a
+checagem do `welcome` roda **uma única vez** ao carregar a página e grava
+`hasInternet` no global storage. O X subia junto com o getty, antes do
+NetworkManager terminar de configurar a placa, e a marcação ficava
+`false` para sempre.
+
+Isso não é cosmético: é `hasInternet` que libera o `update_db`
+(`pacman -Sy`) do módulo `packages`. Sem ele, o `pacman -S` do alvo falha
+com *"target not found"* — o squashfs sai sem `/var/lib/pacman/sync`.
+
+Correção no `distroforge-live-setup`: `nm-online -q --timeout=30` antes
+do `xinit`. Sem `-s`, que só esperaria o *startup* do NM (o estado
+`CONNECTED_SITE`); a checagem HTTP do welcome precisa da conectividade
+plena (`CONNECTED_GLOBAL`), que o journal mostrou chegando 3 s depois.
+Com timeout e `||` o instalador segue mesmo sem rede, para não travar o
+live numa máquina sem cabo.
+
 Dois detalhes que custaram tempo:
 
 - **`file_permissions` do `profiledef.sh` é obrigatório.** O mkarchiso copia o

@@ -369,6 +369,57 @@ def test_arch_habilita_o_display_manager_no_alvo(tmp_path, orchestrator: Orchest
     assert "sddm.service" in units
 
 
+def test_arch_espera_a_rede_antes_de_subir_o_instalador(
+    tmp_path, orchestrator: Orchestrator
+):
+    """A checagem de rede do welcome roda uma vez e grava `hasInternet`.
+
+    É ela que libera o `pacman -Sy` do módulo packages. Se o X subir antes
+    do NetworkManager pegar IP, a página marca "not connected" e a
+    instalação morre em "target not found" — o alvo sai do squashfs sem
+    /var/lib/pacman/sync.
+    """
+    root = orchestrator.generate(
+        Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
+        tmp_path,
+    ).workdir
+    setup = (
+        root / "profile" / "airootfs" / "usr" / "local" / "bin" / "distroforge-live-setup"
+    ).read_text(encoding="utf-8")
+
+    assert "nm-online" in setup
+    # precisa esperar conectividade plena, não só o startup do NM
+    assert "nm-online -q --timeout" in setup
+    assert "nm-online -s" not in setup
+    # sem rede o instalador continua, só sem poder baixar pacotes
+    assert "exec xinit /usr/bin/calamares" in setup
+    assert setup.index("nm-online") < setup.index("exec xinit")
+
+
+def test_arch_nao_depende_de_uma_url_sola_na_checagem_de_rede(
+    tmp_path, orchestrator: Orchestrator
+):
+    """O AUR traz `internetCheckUrl: http://example.com` — uma URL só.
+
+    Aqui esse domínio não resolve, a página marcava "not connected" e
+    `hasInternet` ficava false: sem ele o `pacman -Sy` não roda e a
+    instalação morre em "target not found" (o alvo sai do squashfs sem
+    /var/lib/pacman/sync). Lista de URLs = qualquer uma respondendo basta.
+    """
+    root = orchestrator.generate(
+        Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
+        tmp_path,
+    ).workdir
+    conf = yaml.safe_load(
+        _calamares_arch(root, "modules/welcome.conf").read_text(encoding="utf-8")
+    )
+
+    urls = conf["requirements"]["internetCheckUrl"]
+    assert isinstance(urls, list) and len(urls) >= 2
+    assert all(u.startswith(("http://", "https://")) for u in urls)
+    assert "internet" in conf["requirements"]["check"]
+
+
 def test_ubuntu_nao_recebe_services_systemd_do_arch(
     tmp_path, orchestrator: Orchestrator, profile: Profile
 ):

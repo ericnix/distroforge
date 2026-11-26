@@ -228,6 +228,14 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ -e /run/archiso ]; then
     echo "DistroForge: o instalador já falhou uma vez; shell liberado para debug."
   else
     : > /tmp/distroforge-x-tentado
+    # A checagem de rede do welcome roda uma única vez ao carregar a página e
+    # grava `hasInternet` no global storage — é ela que libera o `pacman -Sy`
+    # do módulo packages. Se o X subir antes do NetworkManager pegar o IP, a
+    # página marca "not connected" e a instalação morre em "target not found"
+    # (o alvo sai do squashfs sem /var/lib/pacman/sync). Esperamos aqui, pela
+    # conectividade plena (sem -s, que só esperaria o startup do NM).
+    echo "DistroForge: aguardando a rede..."
+    nm-online -q --timeout=30 || echo "DistroForge: sem rede seguindo mesmo assim."
     echo "DistroForge: iniciando o instalador..."
     exec xinit /usr/bin/calamares -- :0 vt1
   fi
