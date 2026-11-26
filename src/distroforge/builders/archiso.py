@@ -68,6 +68,9 @@ bootstrap_tarball_compression=('zstd' '-c' '-T0' '--auto-threads=parallel' '--lo
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
+  # o mkarchiso copia o airootfs com `cp --no-preserve=mode`, que descarta os
+  # bits de execução; sem isto o systemd falha com 203/EXEC na unit do live.
+  ["/usr/local/bin/distroforge-live-setup"]="0:0:755"
 )
 """
 

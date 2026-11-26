@@ -161,6 +161,11 @@ def test_arch_traz_os_arquivos_do_firstboot(tmp_path, orchestrator: Orchestrator
     shadow = (etc / "shadow").read_text(encoding="utf-8")
     assert shadow.startswith("root::")
 
+    # o mkarchiso copia com `cp --no-preserve=mode` e descarta os bits de
+    # execução; sem file_permissions a unit do live falha com 203/EXEC
+    profiledef = (root / "profile" / "profiledef.sh").read_text(encoding="utf-8")
+    assert '["/usr/local/bin/distroforge-live-setup"]="0:0:755"' in profiledef
+
 
 def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     profile = Profile(name="ArchPoC", base="arch", desktop="hyprland", apps=["firefox"])
