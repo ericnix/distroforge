@@ -198,6 +198,14 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "files dns" in nsswitch
     assert "resolve" not in nsswitch
 
+    # a live precisa gerenciar a placa ethernet para o netinstall ter rede
+    nm = (
+        root / "config" / "includes.chroot" / "usr" / "lib" / "NetworkManager"
+        / "conf.d" / "10-globally-managed-devices.conf"
+    ).read_text()
+    assert "unmanaged-devices=" in nm
+    assert "except:type" not in nm
+
     build = (root / "build.sh").read_text(encoding="utf-8")
     assert "ubuntu-keyring" in build
 

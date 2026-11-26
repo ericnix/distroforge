@@ -104,6 +104,14 @@ nameserver 1.1.1.1
 nameserver 8.8.8.8
 """
 
+# No Ubuntu, o próprio network-manager vem com este arquivo que deixa a
+# placa ethernet "unmanaged" (só wi-fi é gerenciada). Sem isso a live não
+# sobe rede e o apt falha em resolver os mirrors.
+LIVE_NM_CONF = """\
+[keyfile]
+unmanaged-devices=
+"""
+
 FIRMWARE = {
     "debian": ["firmware-iwlwifi", "firmware-realtek", "firmware-atheros"],
     "ubuntu": ["linux-firmware"],
@@ -335,6 +343,18 @@ class LiveBuildBuilder(Builder):
         )
         written.append(self._write(includes / "etc" / "resolv.conf", LIVE_RESOLV_CONF))
         written.append(self._write(includes / "etc" / "nsswitch.conf", LIVE_NSSWITCH))
+        if base.id == "ubuntu":
+            written.append(
+                self._write(
+                    includes
+                    / "usr"
+                    / "lib"
+                    / "NetworkManager"
+                    / "conf.d"
+                    / "10-globally-managed-devices.conf",
+                    LIVE_NM_CONF,
+                )
+            )
         if base.id == "ubuntu":
             # o build usa apt-secure=false (apt-key não roda no userns);
             # o sistema instalado recebe repositórios assinados normais.
