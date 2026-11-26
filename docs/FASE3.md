@@ -82,6 +82,22 @@ lb config --mode ubuntu --distribution noble \
 | verificação de assinatura falha mesmo assim | `--apt-secure false` no build; `sources.list` limpo é sobrescrito no overlay |
 | `dictionaries-common` falha no postinst | `--apt-recommends false` |
 
+### Causa raiz de todas as falhas de rede: placa não gerenciada
+
+O `network-manager` do Ubuntu traz
+`/usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf`:
+
+```
+[keyfile]
+unmanaged-devices=*,except:type:wifi,except:type:gsm,except:type:cdma
+```
+
+Resultado: a placa ethernet (`ens3`) fica **DOWN e "unmanaged"**, a live não
+tem rede e o `apt` do sistema instalado falha com
+`Temporary failure resolving 'archive.ubuntu.com'` (1095 falhas no log).
+O Debian não tem esse arquivo, por isso funcionava. O overlay sobrescreve com
+`unmanaged-devices=` (gerencia tudo).
+
 ### Descobertas do live Ubuntu
 
 - `sfdisk` não vem no `util-linux` do Ubuntu: está no pacote **`fdisk`**, e o
