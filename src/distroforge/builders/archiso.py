@@ -207,6 +207,12 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
 EOF
 
+# O systemd já carregou a definição de getty@tty1 durante a construção da
+# transação de boot, antes deste script rodar — sem recarregar, ele ignora o
+# drop-in e sobe o agetty padrão (sem autologin), deixando o tty1 em branco.
+# Como o serviço é Before=getty@tty1.service, o reload acontece antes do start.
+systemctl daemon-reload
+
 cat > /etc/profile.d/zz-distroforge-startx.sh <<'EOF'
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ] && [ -e /run/archiso ]; then
   if [ -e /tmp/distroforge-x-tentado ]; then

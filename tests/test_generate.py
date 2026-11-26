@@ -166,6 +166,14 @@ def test_arch_traz_os_arquivos_do_firstboot(tmp_path, orchestrator: Orchestrator
     profiledef = (root / "profile" / "profiledef.sh").read_text(encoding="utf-8")
     assert '["/usr/local/bin/distroforge-live-setup"]="0:0:755"' in profiledef
 
+    # o systemd carrega as units na transação de boot, antes do script rodar;
+    # sem daemon-reload ele ignora o drop-in de autologin do tty1
+    setup = (etc.parent / "usr" / "local" / "bin" / "distroforge-live-setup").read_text(
+        encoding="utf-8"
+    )
+    assert "systemctl daemon-reload" in setup
+    assert "--autologin root" in setup
+
 
 def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     profile = Profile(name="ArchPoC", base="arch", desktop="hyprland", apps=["firefox"])
