@@ -65,6 +65,19 @@ deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe mul
 deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse
 """
 
+# Módulos que o initrd do live precisa ter (VMs e SATA/IDE).
+# MODULES=most deveria cobrir, mas o rebuild do live-build não inclui virtio_blk.
+LIVE_INITRAMFS_MODULES = """\
+virtio
+virtio_pci
+virtio_blk
+virtio_scsi
+virtio_net
+ata_piix
+ahci
+sd_mod
+"""
+
 FIRMWARE = {
     "debian": ["firmware-iwlwifi", "firmware-realtek", "firmware-atheros"],
     "ubuntu": ["linux-firmware"],
@@ -243,6 +256,12 @@ class LiveBuildBuilder(Builder):
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
         # Ubuntu minbase não traz gpgv/gnupg e usa kernel "generic".
         extra_options = '  --debootstrap-options "--include=gpgv,gnupg" \\\n'
+        written.append(
+            self._write(
+                includes / "etc" / "initramfs-tools" / "modules",
+                LIVE_INITRAMFS_MODULES,
+            )
+        )
         if base.id == "ubuntu":
             extra_options += (
                 '  --linux-packages "linux-image linux-headers" \\\n'
