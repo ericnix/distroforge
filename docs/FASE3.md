@@ -99,7 +99,11 @@ lb config --mode ubuntu --distribution noble \
   particionamento. Com os defaults do binário, o Ubuntu gerou **só swap**
   (13,6 GiB como "Free Space", sem partição raiz) e o `unpackfs` falhou com
   `rsync failed with error code 11`. O adapter agora grava
-  `defaultFileSystemType: ext4` e `initialSwapChoice: none`.
+  `defaultFileSystemType: ext4`, `initialSwapChoice: none` e um
+  `partitionLayout` explícito com uma única partição raiz (`100%`, ext4).
+
+  Confirmado no Summary: `After: rootfs 19,99 GiB ext4` + GRUB no MBR,
+  igual ao comportamento do Debian.
 
 ### Pendência do initramfs
 
