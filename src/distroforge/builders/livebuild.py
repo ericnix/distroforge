@@ -25,6 +25,8 @@ LIVE_PACKAGES = [
     "calamares-settings-debian",
     # o live-config usa user-setup para criar o usuário do live
     "user-setup",
+    # dicionário do libpwquality (validação de senha do Calamares)
+    "cracklib-runtime",
     "squashfs-tools",
     "rsync",
     "parted",
