@@ -256,12 +256,6 @@ class LiveBuildBuilder(Builder):
         security = SECURITY_MIRRORS.get(base.id, SECURITY_MIRRORS["debian"])
         # Ubuntu minbase não traz gpgv/gnupg e usa kernel "generic".
         extra_options = '  --debootstrap-options "--include=gpgv,gnupg" \\\n'
-        written.append(
-            self._write(
-                includes / "etc" / "initramfs-tools" / "modules",
-                LIVE_INITRAMFS_MODULES,
-            )
-        )
         if base.id == "ubuntu":
             extra_options += (
                 '  --linux-packages "linux-image linux-headers" \\\n'
@@ -307,6 +301,12 @@ class LiveBuildBuilder(Builder):
         )
 
         includes = workdir / "config" / "includes.chroot"
+        written.append(
+            self._write(
+                includes / "etc" / "initramfs-tools" / "modules",
+                LIVE_INITRAMFS_MODULES,
+            )
+        )
         if base.id == "ubuntu":
             # o build usa apt-secure=false (apt-key não roda no userns);
             # o sistema instalado recebe repositórios assinados normais.
