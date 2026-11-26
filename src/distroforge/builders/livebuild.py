@@ -80,6 +80,13 @@ ahci
 sd_mod
 """
 
+# O Ubuntu usa symlink para o stub do systemd-resolved (127.0.0.53); dentro
+# do chroot de instalação não há resolved e o apt falha com DNS.
+LIVE_RESOLV_CONF = """\
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+"""
+
 FIRMWARE = {
     "debian": ["firmware-iwlwifi", "firmware-realtek", "firmware-atheros"],
     "ubuntu": ["linux-firmware"],
@@ -309,6 +316,7 @@ class LiveBuildBuilder(Builder):
                 LIVE_INITRAMFS_MODULES,
             )
         )
+        written.append(self._write(includes / "etc" / "resolv.conf", LIVE_RESOLV_CONF))
         if base.id == "ubuntu":
             # o build usa apt-secure=false (apt-key não roda no userns);
             # o sistema instalado recebe repositórios assinados normais.

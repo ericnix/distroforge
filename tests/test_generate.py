@@ -190,6 +190,10 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "linux-firmware" in packages
     assert "firmware-iwlwifi" not in packages
 
+    resolv = (root / "config" / "includes.chroot" / "etc" / "resolv.conf").read_text()
+    assert "127.0.0.53" not in resolv
+    assert "nameserver 1.1.1.1" in resolv
+
     build = (root / "build.sh").read_text(encoding="utf-8")
     assert "ubuntu-keyring" in build
 
