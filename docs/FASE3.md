@@ -2,7 +2,8 @@
 
 > Status: **Ubuntu validado** — ISO de 1,4 GB boota, autologin funciona,
 > Calamares abre com o branding e a tela de partições reconhece o disco.
-> **Arch**: ISO gerada, boot live para no `switch_root` (pendente).
+> **Arch**: ISO gerada, `switch-root` OK; boot travava no `systemd-firstboot`
+> (corrigido, reconstrução em curso).
 
 ## Arch Linux
 
@@ -185,8 +186,24 @@ O primeiro build compila o Calamares do AUR (~10 min); os seguintes usam o cache
 
 ## Pendência: boot do Arch
 
-A ISO boota (syslinux → kernel → initrd), mas o systemd do initramfs falha em
-`systemd-switch-root.service` e cai em *emergency mode*.
+O `switch-root` **funciona** — o initramfs monta `/dev/sr0` e o airootfs, e o
+sistema chega ao live. O boot então parava num outro ponto: o
+`systemd-firstboot` (ordenado antes de `sysinit.target`) ficava em tty pedindo
+timezone, porque o airootfs não tinha os arquivos que o releng do archiso traz:
+
+- `/etc/localtime` → symlink para `/usr/share/zoneinfo/UTC` (sem ele, pergunta o timezone)
+- `/etc/locale.conf` (`LANG=C.UTF-8`) (sem ele, pergunta o locale)
+- `/etc/hostname` (sem ele, pergunta o hostname)
+- `/etc/shadow` com `root::` — campo de senha **vazio**, não `!`; root travado
+  faz o firstboot perguntar a senha do root
+
+Correção no commit `9a2191c`. Como o `archiso` monta o prompt no console
+(`console=ttyS0`), o sintoma era um shell parado no serial, não uma mensagem de
+erro — fácil de confundir com falha de switch-root.
+
+Próximos passos: bootar a ISO reconstruída e validar o instalador de ponta a
+ponta. Controle útil: a ISO oficial do Arch no mesmo QEMU, para isolar
+ambiente × perfil.
 
 Já verificado:
 
@@ -195,12 +212,3 @@ Já verificado:
 - `/arch/x86_64/airootfs.sfs` existe
 - o initramfs contém `hooks/archiso` (build log confirma todos os hooks)
 - `mkinitcpio-archiso` (não `archiso`) é o pacote que fornece os hooks
-
-Hipótese principal: no mkinitcpio 42 o initramfs roda systemd como init e o
-`mount_handler` exportado pelo hook `archiso` (pensado para o init do
-initcpio) não é invocado. Próximos passos sugeridos:
-
-1. bootar a ISO oficial do Arch no mesmo QEMU como controle (isolar se é
-   ambiente ou perfil);
-2. testar `archisodevice=/dev/sr0` explícito no `APPEND`;
-3. comparar o initramfs gerado com o da ISO oficial (`lsinitcpio`).

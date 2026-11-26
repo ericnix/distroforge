@@ -41,7 +41,11 @@ PACKAGES = [
     "xorg-server",
     "xorg-xinit",
     "xterm",
-    "openbox",
+    # openbox NÃO entra aqui: o live sobe com `xinit /usr/bin/calamares` e
+    # ninguém inicia o window manager. O pacote só embarcaria
+    # /usr/share/xsessions/openbox.desktop no sistema instalado, onde o SDDM
+    # o escolhe (Openbox < Plasma em ordem alfabética) e o login cai em tela
+    # preta. Quem quiser openbox escolhe no packagechooser.
     "dbus",
 ]
 
