@@ -92,6 +92,8 @@ lb config --mode ubuntu --distribution noble \
   com `virtio*`, `ata_piix`, `ahci` e `sd_mod`; o rebuild do live-build roda
   depois dos includes, então os módulos entram. Disco virtio (`/dev/vda`)
   passa a ser detectado.
+- `libpwquality` precisa do dicionário do **`cracklib-runtime`**; sem ele a
+  tela de usuário mostra "error loading dictionary" e o Next fica bloqueado.
 
 ### Pendência do initramfs
 
