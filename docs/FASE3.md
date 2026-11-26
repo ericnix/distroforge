@@ -184,6 +184,30 @@ python3 scripts/qemu-install-test.py out/minha-distro-arch-1.0-amd64.iso
 
 O primeiro build compila o Calamares do AUR (~10 min); os seguintes usam o cache.
 
+## Validação do Ubuntu (fase 1 completa)
+
+Ciclo completo automatizado, do build ao desktop:
+
+1. `distroforge build ubu.yaml` → ISO de 1,4 GB;
+2. wizard do Calamares via VNC (`/tmp/ubu-full.py`) → instalação a **100% "Done"**;
+3. boot do disco instalado → **SDDM** com o usuário criado;
+4. login → **KDE Plasma** no ar (painel, relógio, wallpaper).
+
+Evidências em `df-poc/vm/ubu-verify/` (`01-boot` … `11-desktop`) e o disco em
+`df-poc/vm/ubu-full.qcow2` (4,5 GB).
+
+Bugs encontrados e corrigidos nesse ciclo (cada um com teste):
+
+| Commit | Bug |
+|---|---|
+| `3b95279` | sem `partitionLayout` o Ubuntu gerava só swap, sem raiz |
+| `54669c2` | `packages.conf` trazia `live-task-*`, inexistente no Ubuntu |
+| `faac04d` | `resolv.conf` era symlink do stub do `resolved` (127.0.0.53) |
+| `605274f` | `nsswitch` com `resolve [!UNAVAIL=return]` bloqueava o DNS |
+| `d413875` | `networkcfg` regravava o `resolv.conf` por cima do overlay |
+| `5930fb4` | `network-manager` marcava a placa ethernet como *unmanaged* |
+| `d286d0b` | `openbox` no live vazava `openbox.desktop` → SDDM escolhia Openbox |
+
 ## Pendência: boot do Arch
 
 O `switch-root` **funciona** — o initramfs monta `/dev/sr0` e o airootfs, e o
