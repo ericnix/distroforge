@@ -49,7 +49,12 @@ LIVE_PACKAGES = [
     "xserver-xorg-legacy",
     "xinit",
     "xterm",
-    "openbox",
+    # openbox NÃO entra aqui: o live sobe com `xinit distroforge-session`, que
+    # só executa o Calamares — ninguém inicia o window manager. O pacote só
+    # poluiria o sistema instalado com /usr/share/xsessions/openbox.desktop, e
+    # o SDDM escolhe a primeira sessão em ordem alfabética (Openbox < Plasma),
+    # deixando o usuário em tela preta após o login. Quem quiser openbox como
+    # desktop escolhe no packagechooser e o netinstall o instala no alvo.
     "dbus",
 ]
 

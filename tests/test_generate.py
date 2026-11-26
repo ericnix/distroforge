@@ -257,6 +257,20 @@ def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
     assert (includes / "usr" / "share" / "applications" / "install-distro.desktop").is_file()
 
 
+def test_live_sem_window_manager_que_vaze_sessao_para_o_alvo():
+    """O live sobe com `xinit distroforge-session`, que só executa o Calamares.
+
+    Ninguém inicia um window manager no live, então um pacote como ``openbox``
+    seria peso morto — e pior: ele embarca ``/usr/share/xsessions/openbox.desktop``
+    no squashfs, que vai parar no sistema instalado. Com duas sessões o SDDM
+    escolhe a primeira em ordem alfabética (Openbox < Plasma) e o usuário cai
+    em tela preta após o login.
+    """
+    from distroforge.builders.livebuild import LIVE_PACKAGES
+
+    assert "openbox" not in LIVE_PACKAGES
+
+
 def test_build_dry_run_nao_exige_runtime(tmp_path, orchestrator: Orchestrator, profile: Profile):
     result = orchestrator.build(profile, tmp_path / "out", dry_run=True)
     assert result.dry_run is True
