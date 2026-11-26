@@ -239,6 +239,47 @@ era sempre "tela preta", então o diagnóstico foi serial interativo
 | `42996ae` | drop-in do `getty@tty1` sem `daemon-reload` | agetty padrão no tty1, `startx` nunca rodava |
 | `a652e87` | `python` ausente no `packages.x86_64` | `libpython3.14.so.1.0 => not found`, Xorg saía com 0 |
 
+### O Calamares do AUR não é o do Debian
+
+Com a fonte no lugar, o instalador subiu — e mostrou **tela cheia de
+"Calamares Initialization Failed"** listando três módulos:
+`packagechooser`, `initramfscfg` e `initramfs`. O `settings.conf` que
+gerávamos valia para o Debian e não para o Arch:
+
+| O que o Debian tem | O que o AUR tem |
+|---|---|
+| `packagechooser` (escolhe o desktop) | **não existe** |
+| `initramfscfg` / `initramfs` | `initcpiocfg` / `initcpio` |
+
+Três problemas em cascata, todos invisíveis até a fonte corrigir a tela:
+
+1. **A sequência abortava** — o Calamares lista os módulos que não achou e
+   a UI fica inutilizável. Corrigido com `MODULE_ALIASES`/`MISSING_MODULES`
+   por base em `calamares.py`.
+2. **Sem `packagechooser`, ninguém instalava o desktop.** No Debian é ele
+   que entrega `task-kde-desktop`; no Arch a escolha passou para o
+   **netinstall**, que ganhou o grupo "Ambiente gráfico" com os itens de
+   `graphical_for()` pré-marcados pelo `desktop` do perfil.
+3. **Sem `packages.conf`, o módulo caía no default `backend: dummy`.** O
+   dummy só escreve no log: o netinstall escolheria os pacotes e *nada*
+   seria instalado — nem desktop, nem apps. Além disso o alvo sai do
+   squashfs **sem `/var/lib/pacman/sync`**, então o `update_db: true`
+   (um `pacman -Sy`) é obrigatório senão o `pacman -S` falha com
+   *"target not found"*.
+
+E um quarto, só aparece depois de tudo instalado: no Arch o preset do
+systemd é `disable *` e **o `displaymanager` do Calamares só configura
+autologin — ele não habilita a unit**. No Debian/Ubuntu o postinst do
+`sddm` faz isso sozinho; no Arch o sistema instalado subiria no getty,
+sem tela de login. Resolvido com `services-systemd.conf` listando as units
+candidatas (`plasmalogin`, `sddm`, `gdm`, `lightdm`) — o módulo suprime
+silenciosamente as que não existirem.
+
+Nota de diagnóstico: o `plasma-meta` do Arch não puxa `sddm`, mas puxa
+`plasma-login-manager` (o `/usr/bin/plasmalogin`), e o
+`displaymanager.conf` do próprio pacote AUR já o lista — por isso a
+candidata correta é `plasmalogin.service`.
+
 Dois detalhes que custaram tempo:
 
 - **`file_permissions` do `profiledef.sh` é obrigatório.** O mkarchiso copia o
@@ -252,6 +293,53 @@ Dois detalhes que custaram tempo:
 O `calamares` do AUR linka `libpython` (os módulos `bootloader`,
 `displaymanager` e `fstab` são Python), mas o PKGBUILD não declara `python`
 como dependência — o `pacman` não puxa nada e o binário morre em `ldd`.
+
+### Causa raiz do "display não inicializado": fontes ausentes
+
+O sintoma era o QEMU exibindo *Guest has not initialized the display (yet)*,
+o `fb0` em `blank=4` e o `crtc-0 active=0`, com o `calamares` e o `Xorg`
+vivos no serial. Diagnóstico longo e **enganado por completo**: testei
+`MODULES=(bochs)` no initramfs, troquei `-vga std` por `cirrus` e `bochs-display`,
+escrevi lixo em `/dev/fb0` e em `0xb8000`, desliguei o blank à mão — nada
+mudou, porque o problema não era de vídeo.
+
+A pista certa estava na cor das capturas. O placeholder do QEMU é preto
+(96,6% dos pixels) com texto cinza-claro; as capturas do Arch tinham 84%
+de `#efefef` e 11% de `#0b0f1a` — **a UI do Calamares estava sendo
+renderizada o tempo todo**. O texto, porém, saía inteiro em caixas vazias
+(*tofu*): o Qt não achava nenhuma TTF e caía no glifo `.notdef`.
+
+O Xorg já avisava no log, e foi ignorado como ruído:
+
+```
+(WW) The directory "/usr/share/fonts/TTF" does not exist.
+(WW) The directory "/usr/share/fonts/misc" does not exist.
+```
+
+Causa: a `PACKAGES` do Arch não tinha `fontconfig` nem nenhuma fonte. O
+Debian/Ubuntu funcionava porque `fonts-dejavu-core` entra por dependência
+(`calamares-settings-debian`/`xfonts-base`) — nada lá é declarado de
+propósito, o que por si só já era uma bomba de tempo.
+
+Correção: `fontconfig` + `ttf-dejavu` em `PACKAGES`, com teste de
+regressão (`test_arch_traz_uma_fonte_para_o_calamares`). Como o Arch usa
+`unpackfs` (copia o squashfs inteiro), a correção vale para o live **e**
+para o sistema instalado.
+
+**Lições** — duas, e a primeira custou horas:
+
+1. **Diferenciar "tela preta" de "UI sem texto".** Medir a distribuição de
+   cores da captura (ou ler a imagem) decide em segundos se o display está
+   morto ou se é outro subsistema. O placeholder do QEMU tem assinatura
+   própria: preto dominante + cinza `#aaaaaa`.
+2. **`blank=4` e `crtc active=0` são sintoma, não causa.** Ambos são o
+   estado normal de um fbcon desativado enquanto o Xorg é o master do DRM —
+   o Ubuntu no mesmo QEMU mostra exatamente o mesmo estado e funciona.
+
+Também ficou em teste `MODULES=(bochs)` no `mkinitcpio.conf` (o initramfs
+padrão do Arch tem `MODULES=()` e o driver de vídeo só carrega depois do
+switch-root). É inofensivo e dá framebuffer desde o initramfs, mas **não**
+era o remédio para este bug.
 
 Próximos passos: bootar a ISO reconstruída e validar o instalador de ponta a
 ponta. Controle útil: a ISO oficial do Arch no mesmo QEMU, para isolar

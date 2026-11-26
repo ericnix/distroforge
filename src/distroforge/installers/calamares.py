@@ -59,6 +59,21 @@ EXEC_SEQUENCE = [
     "umount",
 ]
 
+# O Calamares empacotado por base nem sempre é o upstream. O do AUR (3.4.2)
+# não traz todos os módulos: não há ``packagechooser`` (a escolha do desktop
+# entra no netinstall) e os módulos de initramfs se chamam ``initcpiocfg`` /
+# ``initcpio``. Usar os nomes do Debian lá aborta o instalador com
+# "Calamares Initialization Failed" listando os módulos ausentes.
+MODULE_ALIASES: dict[str, dict[str, str]] = {
+    "arch": {"initramfscfg": "initcpiocfg", "initramfs": "initcpio"},
+}
+MISSING_MODULES: dict[str, set[str]] = {"arch": {"packagechooser"}}
+
+# ``pacman -R`` aborta a transação inteira se algum pacote da lista não
+# existir; ``try_remove`` tira um a um e só avisa. Nas bases apt o ``remove``
+# já está validado de ponta a ponta.
+REMOVE_OPERATION = {"apt": "remove", "pacman": "try_remove"}
+
 
 SHOW_QML = """import QtQuick
 
@@ -120,6 +135,15 @@ LIVE_REMOVAL = {
         "live-tools",
         "calamares-settings-debian",
     ],
+    # No Arch o equivalente são os pacotes de construção da ISO e os hooks do
+    # archiso. O mkinitcpio-archiso sai antes do initcpio rodar, e o
+    # initcpiocfg reescreve o HOOKS do alvo de qualquer forma. dosfstools e
+    # mtools ficam: o alvo precisa deles para partitionar/formatar de novo.
+    "arch": [
+        "mkinitcpio-archiso",
+        "arch-install-scripts",
+        "squashfs-tools",
+    ],
 }
 
 PARTITION_CONF = {
@@ -175,7 +199,9 @@ class CalamaresInstaller(Installer):
             unpack_source = "/run/live/medium/live/filesystem.squashfs"
 
         written: list[Path] = []
-        written.append(self._write_yaml(calamares / "settings.conf", self._settings(profile)))
+        written.append(
+            self._write_yaml(calamares / "settings.conf", self._settings(profile, base_id))
+        )
         written.append(
             self._write_yaml(
                 modules / "unpackfs.conf",
@@ -191,20 +217,47 @@ class CalamaresInstaller(Installer):
             )
         )
         written.append(self._write_yaml(modules / "partition.conf", PARTITION_CONF))
-        if resolution.base.pkg_manager == "apt":
-            removal = LIVE_REMOVAL.get(resolution.base.id, LIVE_REMOVAL["debian"])
+        pkg_manager = resolution.base.pkg_manager
+        if pkg_manager in REMOVE_OPERATION:
+            if pkg_manager == "apt":
+                removal = LIVE_REMOVAL.get(base_id, LIVE_REMOVAL["debian"])
+            else:
+                removal = LIVE_REMOVAL.get(base_id, [])
+            operation = REMOVE_OPERATION[pkg_manager]
+            operations = [{operation: removal}] if removal else []
+            config: dict[str, Any] = {"backend": pkg_manager, "operations": operations}
+            if pkg_manager == "pacman":
+                # o alvo sai do squashfs sem /var/lib/pacman/sync: sem um -Sy
+                # prévio o `pacman -S` falha com "target not found". No apt as
+                # lists do live já vêm prontas, então não mexemos no validado.
+                config["update_db"] = True
+            written.append(self._write_yaml(modules / "packages.conf", config))
+        if "packagechooser" not in MISSING_MODULES.get(base_id, set()):
             written.append(
                 self._write_yaml(
-                    modules / "packages.conf",
-                    {"backend": "apt", "operations": [{"remove": removal}]},
+                    modules / "packagechooser.conf",
+                    self._packagechooser(profile, resolution, catalog),
                 )
             )
-        written.append(
-            self._write_yaml(
-                modules / "packagechooser.conf",
-                self._packagechooser(profile, resolution, catalog),
+        if pkg_manager == "pacman":
+            # No Debian/Ubuntu o postinst do sddm habilita a própria unit; no
+            # Arch o preset do systemd é `disable *` e ninguém habilita nada —
+            # o sistema instalado subiria no getty, sem tela de login.
+            # Lista de candidatos: só a que existir é habilitada, e o módulo
+            # suprime silenciosamente as falhas de units não-mandatórias.
+            written.append(
+                self._write_yaml(
+                    modules / "services-systemd.conf",
+                    {
+                        "units": [
+                            "plasmalogin.service",
+                            "sddm.service",
+                            "gdm.service",
+                            "lightdm.service",
+                        ]
+                    },
+                )
             )
-        )
 
         groups = self._netinstall_groups(profile, resolution, catalog)
         written.append(self._write_yaml(calamares / "netinstall.yaml", groups))
@@ -227,7 +280,18 @@ class CalamaresInstaller(Installer):
     # ------------------------------------------------------------- seções
 
     @staticmethod
-    def _settings(profile: Profile) -> dict[str, Any]:
+    def _settings(profile: Profile, base_id: str = "debian") -> dict[str, Any]:
+        aliases = MODULE_ALIASES.get(base_id, {})
+        missing = MISSING_MODULES.get(base_id, set())
+
+        def adapt(sequence: list[str]) -> list[str]:
+            out = []
+            for name in sequence:
+                if name in missing:
+                    continue
+                out.append(aliases.get(name, name))
+            return out
+
         return {
             # "local" resolve para <libdir>/calamares/modules, onde o Debian
             # instala os módulos (multiarch). Sem esta chave a lista fica vazia
@@ -235,8 +299,8 @@ class CalamaresInstaller(Installer):
             "modules-search": ["local"],
             "instances": [],
             "sequence": [
-                {"show": list(SHOW_SEQUENCE)},
-                {"exec": list(EXEC_SEQUENCE)},
+                {"show": adapt(SHOW_SEQUENCE)},
+                {"exec": adapt(EXEC_SEQUENCE)},
             ],
             "branding": profile.hostname,
             "prompt-install": False,
@@ -275,6 +339,36 @@ class CalamaresInstaller(Installer):
     ) -> list[dict[str, Any]]:
         chosen = set(profile.apps)
         groups: list[dict[str, Any]] = []
+
+        # Sem `packagechooser` (Arch) ninguém entrega os pacotes do desktop:
+        # o netinstall vira o único lugar onde o usuário escolhe o ambiente
+        # gráfico. No Debian/Ubuntu o packagechooser cuida disso e uma segunda
+        # escolha aqui seria redundante.
+        if "packagechooser" in MISSING_MODULES.get(resolution.base.id, set()):
+            desktops = []
+            for item in catalog.graphical_for(resolution.base.id):
+                size = item.size_for(resolution.base.id)
+                description = item.summary
+                if size:
+                    description = f"{description} ({_fmt_mb(size)})"
+                desktops.append(
+                    {
+                        "name": item.label,
+                        "description": description,
+                        "packages": item.packages(resolution.base.id),
+                        "selected": item.id == profile.desktop,
+                    }
+                )
+            if desktops:
+                groups.append(
+                    {
+                        "name": "Ambiente gráfico",
+                        "description": "Escolha o desktop que será instalado",
+                        "selected": False,
+                        "expanded": True,
+                        "subgroups": desktops,
+                    }
+                )
 
         for category in catalog.categories:
             category_id = str(category.get("id", ""))

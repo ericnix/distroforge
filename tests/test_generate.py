@@ -284,6 +284,99 @@ def test_packages_conf_com_live_tasks_no_debian(tmp_path, orchestrator: Orchestr
     assert "live-task-localisation" in remove
 
 
+def _calamares_arch(root, name: str):
+    """No Arch o overlay vai para profile/airootfs, não config/includes.chroot."""
+    return root / "profile" / "airootfs" / "etc" / "calamares" / name
+
+
+def test_arch_usa_os_modulos_que_o_calamares_do_aur_tem(tmp_path, orchestrator: Orchestrator):
+    """O Calamares do AUR não tem ``packagechooser`` e nomeia o initramfs outro jeito.
+
+    A sequência do Debian aborta lá com "Calamares Initialization Failed"
+    listando ``packagechooser``, ``initramfscfg`` e ``initramfs`` — e sem o
+    packagechooser o netinstall ficaria sem entregar o desktop.
+    """
+    profile = Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    data = yaml.safe_load(_calamares_arch(root, "settings.conf").read_text(encoding="utf-8"))
+
+    show = data["sequence"][0]["show"]
+    execute = data["sequence"][1]["exec"]
+
+    assert "packagechooser" not in show
+    assert "netinstall" in show
+    assert "initramfscfg" not in execute and "initramfs" not in execute
+    assert execute.index("initcpiocfg") < execute.index("initcpio")
+    assert execute.index("initcpio") < execute.index("bootloader")
+    # o módulo inexistente não deve deixar config órfã
+    assert not _calamares_arch(root, "modules/packagechooser.conf").exists()
+
+
+def test_arch_instala_o_disco_sem_backend_dummy(tmp_path, orchestrator: Orchestrator):
+    """Sem ``packages.conf`` o Calamares cai no default ``backend: dummy``.
+
+    O dummy só loga: o netinstall escolheria os pacotes e nada seria
+    instalado — nem o desktop, nem os apps. E o alvo sai do squashfs sem
+    ``/var/lib/pacman/sync``, então o ``-Sy`` é obrigatório.
+    """
+    profile = Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    conf = yaml.safe_load(
+        _calamares_arch(root, "modules/packages.conf").read_text(encoding="utf-8")
+    )
+
+    assert conf["backend"] == "pacman"
+    assert conf["update_db"] is True
+    # pacman -R aborta a transação inteira se faltar um pacote
+    assert conf["operations"][0]["try_remove"] == [
+        "mkinitcpio-archiso",
+        "arch-install-scripts",
+        "squashfs-tools",
+    ]
+
+
+def test_arch_escolhe_o_desktop_pelo_netinstall(tmp_path, orchestrator: Orchestrator):
+    """Sem packagechooser, o netinstall é o único lugar onde o desktop é escolhido."""
+    profile = Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    groups = yaml.safe_load(_calamares_arch(root, "netinstall.yaml").read_text(encoding="utf-8"))
+
+    desktop_group = next(g for g in groups if g["name"] == "Ambiente gráfico")
+    names = [item["name"] for item in desktop_group["subgroups"]]
+    assert "KDE Plasma" in names
+
+    kde = next(item for item in desktop_group["subgroups"] if item["name"] == "KDE Plasma")
+    assert kde["selected"] is True
+    assert kde["packages"] == ["plasma-meta", "kde-applications"]
+    # só um desktop marcado
+    assert sum(1 for i in desktop_group["subgroups"] if i["selected"]) == 1
+
+
+def test_arch_habilita_o_display_manager_no_alvo(tmp_path, orchestrator: Orchestrator):
+    """No Arch o preset do systemd é ``disable *``: sem isto o alvo sobe no getty.
+
+    No Debian/Ubuntu o postinst do sddm habilita a própria unit, por isso
+    só as bases pacman precisam deste módulo.
+    """
+    profile = Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    conf = yaml.safe_load(
+        _calamares_arch(root, "modules/services-systemd.conf").read_text(encoding="utf-8")
+    )
+    units = [u if isinstance(u, str) else u["name"] for u in conf["units"]]
+
+    assert "plasmalogin.service" in units
+    assert "sddm.service" in units
+
+
+def test_ubuntu_nao_recebe_services_systemd_do_arch(
+    tmp_path, orchestrator: Orchestrator, profile: Profile
+):
+    """Lá o postinst do DM cuida da unit; lista extra é ruído."""
+    root = orchestrator.generate(profile, tmp_path).workdir
+    assert not _calamares(root, "modules/services-systemd.conf").exists()
+
+
 def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
     tmp_path, orchestrator: Orchestrator, profile: Profile
 ):
@@ -300,6 +393,22 @@ def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
 
     # o atalho do menu é inofensivo e continua no overlay
     assert (includes / "usr" / "share" / "applications" / "install-distro.desktop").is_file()
+
+
+def test_todas_as_bases_declararam_uma_fonte():
+    """Nenhuma base pode depender de fonte entrar por acidente de dependência.
+
+    No Debian/Ubuntu ``fonts-dejavu-core`` vinha implícito no
+    ``calamares-settings-debian``; no Arch não vinha nada e a UI do
+    Calamares saiu inteira em caixas vazias (tofu), sem erro no Xorg além
+    de um ``(WW) The directory "/usr/share/fonts/TTF" does not exist``.
+    """
+    from distroforge.builders.archiso import PACKAGES as arch_packages
+    from distroforge.builders.livebuild import LIVE_PACKAGES
+
+    assert "fontconfig" in arch_packages
+    assert any(p.startswith(("ttf-", "noto-")) for p in arch_packages)
+    assert any(p.startswith("fonts-") for p in LIVE_PACKAGES)
 
 
 def test_live_sem_window_manager_que_vaze_sessao_para_o_alvo():
