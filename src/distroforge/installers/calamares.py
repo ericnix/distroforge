@@ -100,6 +100,15 @@ PARTITION_CONF = {
     "defaultFileSystemType": "ext4",
     "initialSwapChoice": "none",
     "userSwapChoices": ["none", "small"],
+    # Layout explícito: sem isto o Ubuntu não criava a partição raiz.
+    "partitionLayout": [
+        {
+            "name": "rootfs",
+            "filesystem": "ext4",
+            "mountPoint": "/",
+            "size": "100%",
+        }
+    ],
     "efi": {
         "mountPoint": "/boot/efi",
         "recommendedSize": "300MiB",
