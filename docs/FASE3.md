@@ -126,6 +126,30 @@ O Debian não tem esse arquivo, por isso funcionava. O overlay sobrescreve com
   retornava 100 e o módulo parava **antes** de instalar os programas do
   netinstall. O adapter agora gera o `packages.conf` por base.
 
+### Sessão errada no SDDM: tela preta após o login
+
+Depois de a instalação chegar a 100%, o sistema instalava, boota no SDDM e o
+login caía em **tela preta com cursor**. O `state.conf` do SDDM mostrava
+`Session=/usr/share/xsessions/openbox.desktop`.
+
+Causa: o live é montado com o pacote `openbox` para "dar uma sessão gráfica ao
+Calamares", mas na prática o live sobe com
+`xinit /usr/local/bin/distroforge-session` — um script que só executa o
+`calamares`. **Ninguém inicia o window manager.** O pacote só servia para
+embarcar `openbox.desktop` no squashfs, que o `unpackfs` copiava para o sistema
+instalado junto com o `plasma.desktop` do netinstall.
+
+Com duas sessões, o SDDM escolhe a primeira em ordem alfabética:
+**Openbox < Plasma** → `openbox-session` sem configuração nenhuma → tela preta.
+
+Correção: `openbox` saiu de `LIVE_PACKAGES` (commit `d286d0b`). Quem quiser
+openbox como desktop escolhe no `packagechooser` e o `netinstall` o instala no
+alvo, onde ele é a única sessão.
+
+Diagnóstico útil: `journalctl -b -u sddm` mostra
+`Session "/usr/share/xsessions/….desktop" selected, command: "…"`, e
+`/var/lib/sddm/state.conf` guarda a última sessão usada.
+
 ### Pendência do initramfs
 
 A ISO boota, o `user-setup` cria o usuário e o Calamares abre com o branding.
