@@ -225,6 +225,34 @@ Correção no commit `9a2191c`. Como o `archiso` monta o prompt no console
 (`console=ttyS0`), o sintoma era um shell parado no serial, não uma mensagem de
 erro — fácil de confundir com falha de switch-root.
 
+### Cadeia de bugs do live Arch (todos corrigidos)
+
+Depois do firstboot, cada camada revelou o próximo problema. O sintoma final
+era sempre "tela preta", então o diagnóstico foi serial interativo
+(`-serial tcp:...` + `systemctl status`):
+
+| Commit | Bug | Evidência |
+|---|---|---|
+| `9a2191c` | faltavam `hostname`/`locale.conf`/`localtime`/`shadow` | `systemd-firstboot` parado pedindo timezone |
+| `c1d6926` | `openbox` no live vazava `openbox.desktop` | SDDM escolhia Openbox → tela preta |
+| `46e77ae` | script de live sem bit de execução | `status=203/EXEC` na unit |
+| `42996ae` | drop-in do `getty@tty1` sem `daemon-reload` | agetty padrão no tty1, `startx` nunca rodava |
+| `a652e87` | `python` ausente no `packages.x86_64` | `libpython3.14.so.1.0 => not found`, Xorg saía com 0 |
+
+Dois detalhes que custaram tempo:
+
+- **`file_permissions` do `profiledef.sh` é obrigatório.** O mkarchiso copia o
+  airootfs com `cp -af --no-preserve=ownership,mode` — os bits de execução do
+  profile são descartados de propósito e só a lista do `profiledef.sh` os
+  re-aplica.
+- **`daemon-reload` antes do getty.** O systemd constrói a transação de boot e
+  carrega `getty@tty1` antes do nosso script escrever o drop-in; sem recarregar
+  ele ignora o arquivo (e até avisa: *"drop-ins changed on disk"*).
+
+O `calamares` do AUR linka `libpython` (os módulos `bootloader`,
+`displaymanager` e `fstab` são Python), mas o PKGBUILD não declara `python`
+como dependência — o `pacman` não puxa nada e o binário morre em `ldd`.
+
 Próximos passos: bootar a ISO reconstruída e validar o instalador de ponta a
 ponta. Controle útil: a ISO oficial do Arch no mesmo QEMU, para isolar
 ambiente × perfil.
