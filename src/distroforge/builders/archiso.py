@@ -272,6 +272,20 @@ class ArchisoBuilder(Builder):
             )
         )
 
+        # O systemd-firstboot roda antes de sysinit.target e fica em tty bloqueando
+        # o boot inteiro quando falta algo para configurar. É o mesmo conjunto que
+        # o releng do archiso traz: sem localtime ele pergunta o timezone, sem
+        # locale.conf pergunta o locale e com root travado pergunta a senha.
+        written.append(self._write(airootfs / "etc" / "hostname", profile.hostname + "\n"))
+        written.append(self._write(airootfs / "etc" / "locale.conf", "LANG=C.UTF-8\n"))
+        zoneinfo = airootfs / "etc" / "localtime"
+        if zoneinfo.is_symlink() or zoneinfo.exists():
+            zoneinfo.unlink()
+        zoneinfo.symlink_to("/usr/share/zoneinfo/UTC")
+        written.append(zoneinfo)
+        # root com senha vazia (não travada) → o firstboot não pergunta.
+        written.append(self._write(airootfs / "etc" / "shadow", "root::14871::::::\n"))
+
         written.append(
             self._write(
                 airootfs / "etc" / "systemd" / "system" / "distroforge-live.service",

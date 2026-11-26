@@ -141,6 +141,27 @@ def test_branding_gerado(tmp_path, orchestrator: Orchestrator, profile: Profile)
     assert "Instalando PoC 1.0" in show
 
 
+def test_arch_traz_os_arquivos_do_firstboot(tmp_path, orchestrator: Orchestrator):
+    """O systemd-firstboot roda antes de sysinit.target e trava o boot.
+
+    Sem ``localtime`` ele pergunta o timezone, sem ``locale.conf`` pergunta o
+    locale e com o root travado pergunta a senha — tudo bloqueando o live em
+    um prompt no console. É o mesmo conjunto que o releng do archiso traz.
+    """
+    profile = Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    etc = root / "profile" / "airootfs" / "etc"
+
+    assert (etc / "hostname").read_text(encoding="utf-8").strip()
+    assert "LANG=" in (etc / "locale.conf").read_text(encoding="utf-8")
+    localtime = etc / "localtime"
+    assert localtime.is_symlink() and str(localtime.readlink()) == "/usr/share/zoneinfo/UTC"
+
+    # root com campo de senha vazio (não "!") → o firstboot não pergunta
+    shadow = (etc / "shadow").read_text(encoding="utf-8")
+    assert shadow.startswith("root::")
+
+
 def test_arquitetura_arch_usa_archiso(tmp_path, orchestrator: Orchestrator):
     profile = Profile(name="ArchPoC", base="arch", desktop="hyprland", apps=["firefox"])
     generated = orchestrator.generate(profile, tmp_path)
