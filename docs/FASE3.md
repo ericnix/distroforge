@@ -87,9 +87,11 @@ lb config --mode ubuntu --distribution noble \
 - `sfdisk` não vem no `util-linux` do Ubuntu: está no pacote **`fdisk`**, e o
   backend `pmsfdiskbackendplugin` do Calamares depende dele. Sem `fdisk` o
   instalador mostra "There are no partitions to install on" mesmo com disco.
-- o `initrd.img` do live foi gerado em modo **`dep`** (só `ahci`), então
-  `virtio_blk` não está nele; para testar em VM use disco AHCI ou force
-  `MODULES=most` + `update-initramfs`.
+- o `initrd.img` do live não incluía `virtio_blk`/`ata_piix` (só `ahci`),
+  mesmo com `MODULES=most`. Correção: `/etc/initramfs-tools/modules` no overlay
+  com `virtio*`, `ata_piix`, `ahci` e `sd_mod`; o rebuild do live-build roda
+  depois dos includes, então os módulos entram. Disco virtio (`/dev/vda`)
+  passa a ser detectado.
 
 ### Pendência do initramfs
 
