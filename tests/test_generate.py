@@ -194,6 +194,10 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "127.0.0.53" not in resolv
     assert "nameserver 1.1.1.1" in resolv
 
+    nsswitch = (root / "config" / "includes.chroot" / "etc" / "nsswitch.conf").read_text()
+    assert "files dns" in nsswitch
+    assert "resolve" not in nsswitch
+
     build = (root / "build.sh").read_text(encoding="utf-8")
     assert "ubuntu-keyring" in build
 

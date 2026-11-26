@@ -82,6 +82,23 @@ sd_mod
 
 # O Ubuntu usa symlink para o stub do systemd-resolved (127.0.0.53); dentro
 # do chroot de instalação não há resolved e o apt falha com DNS.
+# O nsswitch do Ubuntu usa "hosts: files resolve [!UNAVAIL=return] dns": sem
+# systemd-resolved no chroot, o resolve devolve UNAVAIL e o DNS nunca é
+# consultado. Usamos o padrão do Debian, que não depende do resolved.
+LIVE_NSSWITCH = """\
+passwd:         files
+group:          files
+shadow:         files
+gshadow:        files
+hosts:          files dns
+networks:       files
+protocols:      files
+services:       files
+ethers:         files
+rpc:            files
+netgroup:       nis
+"""
+
 LIVE_RESOLV_CONF = """\
 nameserver 1.1.1.1
 nameserver 8.8.8.8
@@ -317,6 +334,7 @@ class LiveBuildBuilder(Builder):
             )
         )
         written.append(self._write(includes / "etc" / "resolv.conf", LIVE_RESOLV_CONF))
+        written.append(self._write(includes / "etc" / "nsswitch.conf", LIVE_NSSWITCH))
         if base.id == "ubuntu":
             # o build usa apt-secure=false (apt-key não roda no userns);
             # o sistema instalado recebe repositórios assinados normais.
