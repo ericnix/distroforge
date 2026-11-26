@@ -96,6 +96,31 @@ Rectangle {{
 
 # Particionamento explícito: sem isto o módulo usa defaults do binário,
 # que no Ubuntu geram só swap e deixam o disco sem partição raiz.
+# Pacotes do live a remover do sistema instalado. Os live-task-* só existem
+# no Debian; no Ubuntu o apt-get remove deles retorna código 100.
+LIVE_REMOVAL = {
+    "debian": [
+        "live-boot",
+        "live-boot-doc",
+        "live-config",
+        "live-config-doc",
+        "live-config-systemd",
+        "live-tools",
+        "live-task-localisation",
+        "live-task-recommended",
+        "calamares-settings-debian",
+    ],
+    "ubuntu": [
+        "live-boot",
+        "live-boot-doc",
+        "live-config",
+        "live-config-doc",
+        "live-config-systemd",
+        "live-tools",
+        "calamares-settings-debian",
+    ],
+}
+
 PARTITION_CONF = {
     "defaultFileSystemType": "ext4",
     "initialSwapChoice": "none",
@@ -165,6 +190,14 @@ class CalamaresInstaller(Installer):
             )
         )
         written.append(self._write_yaml(modules / "partition.conf", PARTITION_CONF))
+        if resolution.base.pkg_manager == "apt":
+            removal = LIVE_REMOVAL.get(resolution.base.id, LIVE_REMOVAL["debian"])
+            written.append(
+                self._write_yaml(
+                    modules / "packages.conf",
+                    {"backend": "apt", "operations": [{"remove": removal}]},
+                )
+            )
         written.append(
             self._write_yaml(
                 modules / "packagechooser.conf",

@@ -202,6 +202,27 @@ def test_ubuntu_usa_modo_ubuntu_e_espelho_proprio(tmp_path, orchestrator: Orches
     assert "trusted=yes" not in sources
 
 
+def test_packages_conf_sem_live_tasks_no_ubuntu(tmp_path, orchestrator: Orchestrator):
+    profile = Profile(name="Ubu", base="ubuntu", desktop="kde", apps=["firefox"])
+    root = orchestrator.generate(profile, tmp_path).workdir
+    conf = yaml.safe_load(
+        _calamares(root, "modules/packages.conf").read_text(encoding="utf-8")
+    )
+    remove = conf["operations"][0]["remove"]
+    assert conf["backend"] == "apt"
+    assert "live-task-recommended" not in remove
+    assert "live-boot" in remove
+
+
+def test_packages_conf_com_live_tasks_no_debian(tmp_path, orchestrator: Orchestrator):
+    root = orchestrator.generate(Profile(name="Deb", base="debian", desktop="kde"), tmp_path).workdir
+    conf = yaml.safe_load(
+        _calamares(root, "modules/packages.conf").read_text(encoding="utf-8")
+    )
+    remove = conf["operations"][0]["remove"]
+    assert "live-task-localisation" in remove
+
+
 def test_ajustes_do_live_nao_vazam_para_o_sistema_instalado(
     tmp_path, orchestrator: Orchestrator, profile: Profile
 ):
