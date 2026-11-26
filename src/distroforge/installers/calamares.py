@@ -47,7 +47,8 @@ EXEC_SEQUENCE = [
     "localecfg",
     "users",
     "displaymanager",
-    "networkcfg",
+    # networkcfg omitido de propósito: ele copia o symlink do resolved do live
+    # por cima do nosso resolv.conf (o nsswitch/resolv do overlay resolvem o DNS)
     "hwclock",
     "services-systemd",
     "netinstall",
