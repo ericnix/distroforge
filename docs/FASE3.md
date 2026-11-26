@@ -104,6 +104,11 @@ lb config --mode ubuntu --distribution noble \
 
   Confirmado no Summary: `After: rootfs 19,99 GiB ext4` + GRUB no MBR,
   igual ao comportamento do Debian.
+- **`packages.conf` por base**: a lista de remoção herdada do
+  `calamares-settings-debian` trazia `live-task-localisation` e
+  `live-task-recommended`, que não existem no Ubuntu — o `apt-get remove`
+  retornava 100 e o módulo parava **antes** de instalar os programas do
+  netinstall. O adapter agora gera o `packages.conf` por base.
 
 ### Pendência do initramfs
 
