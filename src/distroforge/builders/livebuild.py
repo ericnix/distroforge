@@ -49,6 +49,11 @@ LIVE_PACKAGES = [
     "xserver-xorg-legacy",
     "xinit",
     "xterm",
+    # o Qt precisa de uma TTF senão TODO o texto do Calamares vira caixa
+    # vazia (tofu). Aqui ela entrava por dependência acidental
+    # (calamares-settings-debian/xfonts-base) — declarar de propósito, senão
+    # um upgrade daí pode tirá-la e a UI fica ilegível sem nenhum erro.
+    "fonts-dejavu-core",
     # openbox NÃO entra aqui: o live sobe com `xinit distroforge-session`, que
     # só executa o Calamares — ninguém inicia o window manager. O pacote só
     # poluiria o sistema instalado com /usr/share/xsessions/openbox.desktop, e

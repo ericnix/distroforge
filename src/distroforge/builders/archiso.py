@@ -45,6 +45,11 @@ PACKAGES = [
     "xorg-server",
     "xorg-xinit",
     "xterm",
+    # sem fontes o Calamares desenha, mas TODO o texto vira caixa vazia (tofu):
+    # o Qt não acha nenhuma TTF e cai no .notdef. O Xorg avisa com
+    # "The directory /usr/share/fonts/TTF does not exist".
+    "fontconfig",
+    "ttf-dejavu",
     # openbox NÃO entra aqui: o live sobe com `xinit /usr/bin/calamares` e
     # ninguém inicia o window manager. O pacote só embarcaria
     # /usr/share/xsessions/openbox.desktop no sistema instalado, onde o SDDM
@@ -98,7 +103,7 @@ Include = /etc/pacman.d/mirrorlist
 """
 
 MKINITCPIO_CONF = """\
-MODULES=()
+MODULES=(bochs)
 BINARIES=()
 FILES=()
 HOOKS=(base udev microcode modconf memdisk archiso archiso_loop_mnt archiso_pxe_common archiso_pxe_nbd archiso_pxe_http archiso_pxe_nfs block filesystems keyboard)
