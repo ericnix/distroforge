@@ -61,6 +61,13 @@ def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Pr
     execute = data["sequence"][1]["exec"]
 
     assert data["modules-search"] == ["local"]
+
+    part = yaml.safe_load(
+        _calamares(root, "modules/partition.conf").read_text(encoding="utf-8")
+    )
+    assert part["initialSwapChoice"] == "none"
+    assert part["defaultFileSystemType"] == "ext4"
+    assert "small" in part["userSwapChoices"]
     assert "packagechooser" in show
     assert "netinstall" in show
     assert "packagechooser" not in execute

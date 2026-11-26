@@ -94,6 +94,20 @@ Rectangle {{
 }}
 """
 
+# Particionamento explícito: sem isto o módulo usa defaults do binário,
+# que no Ubuntu geram só swap e deixam o disco sem partição raiz.
+PARTITION_CONF = {
+    "defaultFileSystemType": "ext4",
+    "initialSwapChoice": "none",
+    "userSwapChoices": ["none", "small"],
+    "efi": {
+        "mountPoint": "/boot/efi",
+        "recommendedSize": "300MiB",
+        "minimumSize": "32MiB",
+    },
+    "lvm": {"enable": True},
+}
+
 DESKTOP_TEMPLATE = """[Desktop Entry]
 Type=Application
 Name=Instalar {product}
@@ -141,6 +155,7 @@ class CalamaresInstaller(Installer):
                 },
             )
         )
+        written.append(self._write_yaml(modules / "partition.conf", PARTITION_CONF))
         written.append(
             self._write_yaml(
                 modules / "packagechooser.conf",
