@@ -94,6 +94,12 @@ lb config --mode ubuntu --distribution noble \
   passa a ser detectado.
 - `libpwquality` precisa do dicionário do **`cracklib-runtime`**; sem ele a
   tela de usuário mostra "error loading dictionary" e o Next fica bloqueado.
+- **`partition.conf` explícito**: o pacote `calamares` e o
+  `calamares-settings-debian` não trazem nenhum `.conf` de módulo de
+  particionamento. Com os defaults do binário, o Ubuntu gerou **só swap**
+  (13,6 GiB como "Free Space", sem partição raiz) e o `unpackfs` falhou com
+  `rsync failed with error code 11`. O adapter agora grava
+  `defaultFileSystemType: ext4` e `initialSwapChoice: none`.
 
 ### Pendência do initramfs
 
