@@ -427,6 +427,23 @@ O `default.target` estava correto (`graphical.target`, que tem
 `Wants=display-manager.service`) — faltava só o symlink, que o
 `systemctl enable` não conseguiu criar.
 
+**3. Sync db apagado e `hasInternet` false.** O mesmo
+`_cleanup_pacstrap_dir` que apaga o `/boot` apaga também
+`/var/lib/pacman/sync` — o alvo nasce sem os DBs. Eles seriam baixados
+pelo `update_db` do `packages`, que **só roda se `hasInternet`** — flag
+que o `welcome` grava uma única vez ao carregar a página.
+
+Nesta rodada a flag ficou `false` e o `-Sy` foi simplesmente pulado: o
+`/var/log/pacman.log` do alvo começa direto em `pacman -Rs
+mkinitcpio-archiso`, sem nenhuma linha de `-Sy`. Resultado: `pacman -S`
+com "target not found", erro engolido, "Done" de novo.
+
+A causa raiz da flag continua aberta — a rede e as URLs do `welcome`
+funcionam (testado com `curl` dentro do guest: `https://archlinux.org`
+devolve a página inteira). O `-Sy` saiu do `shellprocess`, fora da
+dependência da flag: sem rede o install agora **aborta com mensagem
+visível**, em vez de mostrar "Done" sem instalar nada.
+
 **Lições**:
 
 - **"Done" não é sucesso.** O backend `pacman` engole o erro do
