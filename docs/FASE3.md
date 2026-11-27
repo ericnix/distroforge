@@ -208,7 +208,45 @@ Bugs encontrados e corrigidos nesse ciclo (cada um com teste):
 | `5930fb4` | `network-manager` marcava a placa ethernet como *unmanaged* |
 | `d286d0b` | `openbox` no live vazava `openbox.desktop` → SDDM escolhia Openbox |
 
-## Pendência: boot do Arch
+## Arch (fase 1 completa — validado de ponta a ponta)
+
+Validação no mesmo formato do Ubuntu, com o wizard automatizado por VNC:
+
+1. ISO buildada e bootada (`-vga std -vnc`)
+2. Wizard atravessou as 8 páginas: Welcome → Location → Keyboard →
+   Partitions → Users → Package selection → Summary → Install
+3. Instalação a **100% "Done"** — mas "Done" sozinho não prova nada (ver
+   abaixo), então o disco foi medido: **11,2 GB** contra 2,5 GB da
+   rodada em que nada era instalado
+4. Boot **só do disco instalado** (sem a ISO) → `grub` + `mkinitcpio` +
+   `systemd` no ar
+5. **Display manager na tela** — o greeter do `plasmalogin` com relógio,
+   data e wallpaper do Plasma (629 KB de screenshot,106 mil cores
+   distintas — contra3,8 KB de um tty preto)
+6. **Login** com `usuario` / `Distr0F0rge2026`
+7. **Sessão KDE Plasma no ar**: painel com launcher/tasks/Dolphin,
+   system tray completo, relógio e calendário
+
+Capturas em `df-poc/shots/final/`.
+
+### Como a UI do instalador foi automatizada
+
+Duas ferramentas, cada uma para um problema que a outra não resolvia:
+
+- **vncdotool** (`api.connect("127.0.0.1:N")`, teclas `pgup`/`ctrl-a`):
+  clica e captura, mas **não envia letras** (`keyPress("l")` não chega —
+  só combinações como `ctrl-c`). Serve para dirigir o wizard.
+- **monitor do QEMU** (`-monitor tcp:...,server,nowait` + `sendkey`):
+  digita qualquer coisa no console. Serviu para logar no sistema
+  instalado e rodar `pacman -Q` / `systemctl` — foi o único caminho
+  para ver que "Done" não queria dizer sucesso.
+
+Um terceiro atalho que não funcionou: ler os screenshots com o tool de
+imagem devolvia **outro arquivo** (cache) — a leitura só ficou confiável
+copiando para um nome único antes, ou analisando programaticamente com
+PIL (tamanho, hash md5, posição da barra de destaque da sidebar).
+
+
 
 O `switch-root` **funciona** — o initramfs monta `/dev/sr0` e o airootfs, e o
 sistema chega ao live. O boot então parava num outro ponto: o
