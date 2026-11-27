@@ -369,17 +369,40 @@ def test_arch_habilita_o_display_manager_no_alvo(tmp_path, orchestrator: Orchest
     assert "sddm.service" in units
 
 
+def test_services_systemd_roda_depois_de_instalar(
+    tmp_path, orchestrator: Orchestrator, profile: Profile
+):
+    """No Arch o display manager vem do netinstall, e pacotes Arch não se
+    habilitam sozinhos.
+
+    Habilitar antes de instalar faz o `systemctl enable plasmalogin.service`
+    falhar — e a falha é suprimida por a unit ser não-mandatória. Confirmado
+    no sistema instalado: `systemctl is-enabled display-manager.service` →
+    not-found, e o boot caía no getty em vez do display manager.
+    """
+    root = orchestrator.generate(profile, tmp_path).workdir
+    data = yaml.safe_load(_calamares(root, "settings.conf").read_text(encoding="utf-8"))
+    execute = data["sequence"][1]["exec"]
+
+    assert execute.index("packages") < execute.index("services-systemd")
+
+
 def test_arch_copia_o_kernel_para_boot_antes_do_mkinitcpio(
     tmp_path, orchestrator: Orchestrator
 ):
-    """O mkarchiso apaga o /boot do airootfs antes de gerar o squashfs.
+    """Dois preparos que o alvo precisa ANTES do job `packages`.
 
-    O alvo nasce do unpackfs desse squashfs, então chega sem
-    /boot/vmlinuz-linux — e o preset do mkinitcpio passa
-    `-k /boot/vmlinuz-linux`, que morre com "Invalid option -k -- must be
-    readable" (testado no alvo real). O grub-mkconfig também não acha
-    nenhum kernel e não gera entrada de boot. O shellprocess copia o kernel
-    de /usr/lib/modules antes de initcpiocfg.
+    **keyring**: o `pacman-key --init` do build roda no container, então o
+    squashfs sai sem /etc/pacman.d/gnupg. Sem ele o `pacman -S` morre em
+    "required key missing from keyring" — e o backend pacman usa
+    target_env_process_output, que não propaga o erro, então o Calamares
+    mostra "Done" sem instalar nada (testado no alvo).
+
+    **/boot**: o mkarchiso apaga o /boot do airootfs antes do squashfs, então
+    o alvo nasce sem /boot/vmlinuz-linux. O preset do mkinitcpio passa
+    `-k /boot/vmlinuz-linux` e morre com "must be readable" (também testado
+    no alvo); o grub-mkconfig não acha nenhum kernel e não gera entrada de
+    boot.
     """
     root = orchestrator.generate(
         Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
@@ -389,9 +412,9 @@ def test_arch_copia_o_kernel_para_boot_antes_do_mkinitcpio(
     execute = data["sequence"][1]["exec"]
 
     assert "shellprocess" in execute
-    # tem que rodar antes de gerar o initramfs
-    assert execute.index("shellprocess") < execute.index("initcpiocfg")
-    assert execute.index("shellprocess") < execute.index("initcpio")
+    # os dois preparos precisam rodar antes do packages e do initramfs
+    for later in ("packages", "initcpiocfg", "initcpio", "bootloader"):
+        assert execute.index("shellprocess") < execute.index(later)
 
     conf = yaml.safe_load(
         _calamares_arch(root, "modules/shellprocess.conf").read_text(encoding="utf-8")
@@ -399,6 +422,8 @@ def test_arch_copia_o_kernel_para_boot_antes_do_mkinitcpio(
     script = " ".join(conf["script"])
     assert "/boot/vmlinuz-linux" in script
     assert "/usr/lib/modules" in script
+    assert "pacman-key --init" in script
+    assert "pacman-key --populate" in script
     # sem `$`: o expander do shellprocess usa `$` como símbolo de macro
     assert "$" not in script
     # roda DENTRO do chroot do alvo (dontChroot: false é o default)

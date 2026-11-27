@@ -307,6 +307,69 @@ testadas em sequência e basta **uma** responder.
 O Debian/Ubuntu não tem o problema porque o `calamares-settings-debian`
 sequer inclui `internet` na lista `check`.
 
+### Três barreiras entre o `users` e o `bootloader`
+
+Com o `sudo` e as fontes resolvidos, a instalação avançou até o job
+`packages` — e morreu em *"Package Manager error"*. Cada uma das três
+causas seguintes só se manifesta no **alvo**, nunca no build, e cada uma
+foi confirmada com um teste no chroot do disco que falhou.
+
+**1. Mirrorlist sem nenhum servidor ativo.** O `pacman-mirrorlist`
+(20260610) vem com **todos os 425 servidores comentados** — quem instala
+é esperado escrever o próprio (o `archinstall` faz; o mkarchiso não toca
+no arquivo). O erro era `no servers configured for repository`.
+
+Um teste A/B me corrigiu: escrevi o `resolv.conf` com nameservers e
+rodar o `pacman -Sy` de novo **continuou falhando igual** — o problema
+não era DNS. Só olhar o mirrorlist (0 linhas `^Server`) revelou a causa.
+O build não cai nisso porque o `Include` resolve no **container**, cuja
+mirrorlist da imagem tem servidores ativos; o alvo recebe a do pacote.
+
+**2. `resolv.conf` sem nenhum nameserver.** O squashfs traz o default do
+sistema — só comentários. No live o NetworkManager reescreve em runtime,
+mas o alvo recebe o do squashfs, e o Calamares **não copia** o do host
+(confirmedo: `libcalamares.so` não tem nenhuma string `resolv`). É a
+mesma correção que já aplicávamos no Debian/Ubuntu.
+
+**3. `/boot` vazio no alvo.** O mkarchiso apaga **todo** o `/boot` do
+airootfs antes de gerar o squashfs:
+
+```bash
+# Delete all files in /boot
+[[ -d "${pacstrap_dir}/boot" ]] && find "${pacstrap_dir}/boot" -mindepth 1 -delete
+```
+
+O kernel vai só para a ISO (`arch/boot/x86_64/`). Como o alvo nasce do
+`unpackfs`, ele chega **sem `/boot/vmlinuz-linux`**. Testado no alvo:
+
+```
+$ mkinitcpio -P
+==> ERROR: Invalid option -k -- '/boot/vmlinuz-linux' must be readable
+$ ls /usr/lib/modules/*/vmlinuz
+/usr/lib/modules/7.3.6-arch1-1/vmlinuz      ← o kernel está aqui
+```
+
+O preset (`ALL_kver="/boot/vmlinuz-linux"`) e o `grub-mkconfig` (que
+procura `/boot/vmlinuz-*` para gerar a entrada de boot) dependem do
+arquivo. Um `shellprocess` o copia de `/usr/lib/modules` antes de
+`initcpiocfg`.
+
+Detalhe que custaria uma hora: o expander do `shellprocess` usa `$` como
+**símbolo de macro** (`StringExpander`: *"`$` as macro-symbol"*), então
+qualquer `$var` no script viraria "variável não definida" e abortaria o
+job. O comando foi escrito sem nenhum `$`.
+
+**Lições** — o padrão se repete três vezes:
+
+- **Testes A/B no alvo real valem mais que leitura de código.** O teste
+  do `resolv.conf` *refutou* minha própria hipótese e apontou para o
+  mirrorlist; sem ele eu teria commitado uma correção que não resolvia.
+- **O build validar nada não significa que o alvo valide.** O `Include`
+  resolve no container e o `unpackfs` copia o squashfs — os dois caminhos
+  de leitura do `pacman.conf` são diferentes.
+- **`/boot` vazio é invisível até o mkinitcpio.** Nenhum teste de
+  geração pega isso; só rodar o instalador até o fim.
+
 ### A rede tinha que estar no ar antes do X
 
 Com a fonte e os módulos certos, a página de boas-vindas apareceu com

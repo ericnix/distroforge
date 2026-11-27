@@ -50,32 +50,51 @@ EXEC_SEQUENCE = [
     # networkcfg omitido de propósito: ele copia o symlink do resolved do live
     # por cima do nosso resolv.conf (o nsswitch/resolv do overlay resolvem o DNS)
     "hwclock",
-    "services-systemd",
+    # netinstall/packages ANTES de services-systemd: no Arch o display
+    # manager vem do netinstall (plasma-meta puxa plasma-login-manager) e os
+    # pacotes Arch não se habilitam sozinhos. Habilitar antes de instalar
+    # faz o `systemctl enable plasmalogin.service` falhar com "unit not
+    # found" — e a falha é suprimida por a unit ser não-mandatória.
+    # Confirmado no sistema instalado: `systemctl is-enabled
+    # display-manager.service` → not-found, e o boot caía no getty.
+    # No Ubuntu é no-op (não geramos services-systemd.conf lá).
     "netinstall",
     "packages",
+    "services-systemd",
     "initramfscfg",
     "initramfs",
     "bootloader",
     "umount",
 ]
 
-# O mkarchiso apaga todo o /boot do airootfs antes de gerar o squashfs
-# (`find $pacstrap_dir/boot -mindepth 1 -delete`) — o kernel vai só para a
-# ISO, em arch/boot/x86_64/. Como o alvo nasce do unpackfs desse squashfs,
-# ele chega SEM /boot/vmlinuz-linux, e aí:
-#   - o preset do mkinitcpio passa `-k /boot/vmlinuz-linux` e morre com
-#     "Invalid option -k -- must be readable" (testado no alvo real);
-#   - o grub-mkconfig não acha nenhum kernel e não gera entrada de boot.
-# O kernel existe no alvo em /usr/lib/modules/<kver>/vmlinuz; copiamos.
+# Dois preparos que o alvo precisa ANTES do job `packages`:
+#
+# 1. keyring do pacman: o `pacman-key --init` do build roda no CONTAINER,
+#    então o squashfs sai sem /etc/pacman.d/gnupg. Sem ele o `pacman -S`
+#    morre em "required key missing from keyring" (testado no alvo: o
+#    `pacman -Sy` passa porque os DBs são DatabaseOptional, mas os pacotes
+#    exigem assinatura). Pior: o backend pacman usa
+#    target_env_process_output, que não propaga o erro — o Calamares
+#    mostra "Done" e nada é instalado.
+# 2. /boot: o mkarchiso apaga o /boot do airootfs antes do squashfs, então
+#    o alvo nasce sem /boot/vmlinuz-linux. O preset do mkinitcpio passa
+#    `-k /boot/vmlinuz-linux` e morre com "must be readable"; o
+#    grub-mkconfig não acha nenhum kernel e não gera entrada de boot.
+#    O kernel está em /usr/lib/modules/<kver>/vmlinuz.
+#
+# dontChroot: false (default) = roda `chroot <alvo> /bin/sh -c`, com /proc,
+# /sys e /dev já montados pelo mount.conf (extraMounts).
 # Sem `$` de propósito: o expander do shellprocess usa `$` como símbolo de
 # macro e trataria qualquer `$var` como variável não definida (erro).
-# dontChroot: false (default) = roda `chroot <alvo> /bin/sh -c`.
+# timeout alto: o pacman-key --init gera a chave mestra (demora).
 SHELLPROCESS_BOOT = {
     "dontChroot": False,
-    "timeout": 60,
+    "timeout": 180,
     "verbose": True,
     "script": [
-        "mkdir -p /boot && cp -f /usr/lib/modules/*/vmlinuz /boot/vmlinuz-linux"
+        "mkdir -p /boot && cp -f /usr/lib/modules/*/vmlinuz /boot/vmlinuz-linux",
+        "pacman-key --init",
+        "pacman-key --populate archlinux",
     ],
 }
 
@@ -361,11 +380,11 @@ class CalamaresInstaller(Installer):
 
         execute = adapt(EXEC_SEQUENCE)
         if pkg_manager == "pacman":
-            # Precisa rodar antes de initcpiocfg/initcpio: é ele que põe o
-            # kernel em /boot, senão o mkinitcpio morre no `-k` e o
-            # grub-mkconfig não gera entrada de boot.
-            anchor = "initcpiocfg" if "initcpiocfg" in execute else "initramfscfg"
-            execute.insert(execute.index(anchor), "shellprocess")
+            # Precisa rodar antes do packages: é ele que inicializa o keyring
+            # (sem ele o `pacman -S` morre em "required key missing from
+            # keyring") e põe o kernel em /boot (sem ele o mkinitcpio morre
+            # no `-k` e o grub-mkconfig não gera entrada de boot).
+            execute.insert(execute.index("packages"), "shellprocess")
 
         return {
             # "local" resolve para <libdir>/calamares/modules, onde o Debian
