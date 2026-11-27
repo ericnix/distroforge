@@ -369,6 +369,109 @@ def test_arch_habilita_o_display_manager_no_alvo(tmp_path, orchestrator: Orchest
     assert "sddm.service" in units
 
 
+def test_arch_copia_o_kernel_para_boot_antes_do_mkinitcpio(
+    tmp_path, orchestrator: Orchestrator
+):
+    """O mkarchiso apaga o /boot do airootfs antes de gerar o squashfs.
+
+    O alvo nasce do unpackfs desse squashfs, então chega sem
+    /boot/vmlinuz-linux — e o preset do mkinitcpio passa
+    `-k /boot/vmlinuz-linux`, que morre com "Invalid option -k -- must be
+    readable" (testado no alvo real). O grub-mkconfig também não acha
+    nenhum kernel e não gera entrada de boot. O shellprocess copia o kernel
+    de /usr/lib/modules antes de initcpiocfg.
+    """
+    root = orchestrator.generate(
+        Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
+        tmp_path,
+    ).workdir
+    data = yaml.safe_load(_calamares_arch(root, "settings.conf").read_text(encoding="utf-8"))
+    execute = data["sequence"][1]["exec"]
+
+    assert "shellprocess" in execute
+    # tem que rodar antes de gerar o initramfs
+    assert execute.index("shellprocess") < execute.index("initcpiocfg")
+    assert execute.index("shellprocess") < execute.index("initcpio")
+
+    conf = yaml.safe_load(
+        _calamares_arch(root, "modules/shellprocess.conf").read_text(encoding="utf-8")
+    )
+    script = " ".join(conf["script"])
+    assert "/boot/vmlinuz-linux" in script
+    assert "/usr/lib/modules" in script
+    # sem `$`: o expander do shellprocess usa `$` como símbolo de macro
+    assert "$" not in script
+    # roda DENTRO do chroot do alvo (dontChroot: false é o default)
+    assert conf["dontChroot"] is False
+
+
+def test_ubuntu_nao_recebe_shellprocess_nem_mirrorlist(
+    tmp_path, orchestrator: Orchestrator, profile: Profile
+):
+    """O live-build do Debian mantém o /boot e o apt já resolve os mirrors."""
+    root = orchestrator.generate(profile, tmp_path).workdir
+    data = yaml.safe_load(_calamares(root, "settings.conf").read_text(encoding="utf-8"))
+
+    assert "shellprocess" not in data["sequence"][1]["exec"]
+    assert not _calamares(root, "modules/shellprocess.conf").exists()
+
+
+def test_arch_tem_mirror_ativo_no_alvo(tmp_path, orchestrator: Orchestrator):
+    """O pacman-mirrorlist vem com TODOS os servidores comentados.
+
+    Quem instala é esperado escrever o próprio mirror (o archinstall faz; o
+    mkarchiso não toca no arquivo). Com tudo comentado o `pacman -Sy` falha
+    com "no servers configured for repository" dentro do chroot e o job
+    `packages` do Calamares aborta a instalação. O build não cai nisso
+    porque o Include resolve no container, que tem a mirrorlist da imagem.
+    """
+    root = orchestrator.generate(
+        Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
+        tmp_path,
+    ).workdir
+    mirror = root / "profile" / "airootfs" / "etc" / "pacman.d" / "mirrorlist"
+
+    active = [
+        l for l in mirror.read_text(encoding="utf-8").splitlines()
+        if l.startswith("Server")
+    ]
+    assert len(active) >= 1, "nenhum Server ativo: pacman -Sy vai falhar"
+    assert all("$repo" in l for l in active)
+
+
+def test_arch_tem_nameserver_no_alvo(tmp_path, orchestrator: Orchestrator):
+    """O squashfs sai com o /etc/resolv.conf do systemd — só comentários.
+
+    No live o NetworkManager reescreve em runtime, mas o alvo recebe o
+    arquivo do squashfs, e o Calamares não copia o do host. Sem nameserver o
+    `pacman -Sy` do módulo packages falha com código 1 dentro do chroot e a
+    instalação aborta em "Package Manager error".
+    """
+    root = orchestrator.generate(
+        Profile(name="ArchPoC", base="arch", desktop="kde", apps=["firefox"]),
+        tmp_path,
+    ).workdir
+    resolv = root / "profile" / "airootfs" / "etc" / "resolv.conf"
+
+    assert resolv.is_file() and not resolv.is_symlink()
+    text = resolv.read_text(encoding="utf-8")
+    assert "nameserver" in text
+    assert len([l for l in text.splitlines() if l.startswith("nameserver")]) >= 2
+
+
+def test_arch_tem_sudo_para_o_job_do_calamares():
+    """O módulo `users` do Calamares escreve /etc/sudoers.
+
+    Sem o pacote `sudo` o arquivo não existe, o job falha com "Cannot create
+    sudoers file for writing." e a instalação inteira cai em emergência — o
+    bootloader nem chega a rodar. No Debian/Ubuntu o sudo entra no live por
+    padrão, então só o Arch precisa declarar.
+    """
+    from distroforge.builders.archiso import PACKAGES
+
+    assert "sudo" in PACKAGES
+
+
 def test_arch_espera_a_rede_antes_de_subir_o_instalador(
     tmp_path, orchestrator: Orchestrator
 ):

@@ -59,6 +59,26 @@ EXEC_SEQUENCE = [
     "umount",
 ]
 
+# O mkarchiso apaga todo o /boot do airootfs antes de gerar o squashfs
+# (`find $pacstrap_dir/boot -mindepth 1 -delete`) — o kernel vai só para a
+# ISO, em arch/boot/x86_64/. Como o alvo nasce do unpackfs desse squashfs,
+# ele chega SEM /boot/vmlinuz-linux, e aí:
+#   - o preset do mkinitcpio passa `-k /boot/vmlinuz-linux` e morre com
+#     "Invalid option -k -- must be readable" (testado no alvo real);
+#   - o grub-mkconfig não acha nenhum kernel e não gera entrada de boot.
+# O kernel existe no alvo em /usr/lib/modules/<kver>/vmlinuz; copiamos.
+# Sem `$` de propósito: o expander do shellprocess usa `$` como símbolo de
+# macro e trataria qualquer `$var` como variável não definida (erro).
+# dontChroot: false (default) = roda `chroot <alvo> /bin/sh -c`.
+SHELLPROCESS_BOOT = {
+    "dontChroot": False,
+    "timeout": 60,
+    "verbose": True,
+    "script": [
+        "mkdir -p /boot && cp -f /usr/lib/modules/*/vmlinuz /boot/vmlinuz-linux"
+    ],
+}
+
 # O Calamares empacotado por base nem sempre é o upstream. O do AUR (3.4.2)
 # não traz todos os módulos: não há ``packagechooser`` (a escolha do desktop
 # entra no netinstall) e os módulos de initramfs se chamam ``initcpiocfg`` /
@@ -235,7 +255,10 @@ class CalamaresInstaller(Installer):
 
         written: list[Path] = []
         written.append(
-            self._write_yaml(calamares / "settings.conf", self._settings(profile, base_id))
+            self._write_yaml(
+                calamares / "settings.conf",
+                self._settings(profile, base_id, resolution.base.pkg_manager),
+            )
         )
         written.append(
             self._write_yaml(
@@ -278,6 +301,10 @@ class CalamaresInstaller(Installer):
             # O AUR traz uma checagem de rede de URL única (não resolvia aqui
             # e derrubava a instalação); a nossa aceita lista.
             written.append(self._write(modules / "welcome.conf", WELCOME_CONF))
+            # Põe o kernel em /boot do alvo (o squashfs sai sem /boot).
+            written.append(
+                self._write_yaml(modules / "shellprocess.conf", SHELLPROCESS_BOOT)
+            )
             # No Debian/Ubuntu o postinst do sddm habilita a própria unit; no
             # Arch o preset do systemd é `disable *` e ninguém habilita nada —
             # o sistema instalado subiria no getty, sem tela de login.
@@ -318,7 +345,9 @@ class CalamaresInstaller(Installer):
     # ------------------------------------------------------------- seções
 
     @staticmethod
-    def _settings(profile: Profile, base_id: str = "debian") -> dict[str, Any]:
+    def _settings(
+        profile: Profile, base_id: str = "debian", pkg_manager: str = "apt"
+    ) -> dict[str, Any]:
         aliases = MODULE_ALIASES.get(base_id, {})
         missing = MISSING_MODULES.get(base_id, set())
 
@@ -330,6 +359,14 @@ class CalamaresInstaller(Installer):
                 out.append(aliases.get(name, name))
             return out
 
+        execute = adapt(EXEC_SEQUENCE)
+        if pkg_manager == "pacman":
+            # Precisa rodar antes de initcpiocfg/initcpio: é ele que põe o
+            # kernel em /boot, senão o mkinitcpio morre no `-k` e o
+            # grub-mkconfig não gera entrada de boot.
+            anchor = "initcpiocfg" if "initcpiocfg" in execute else "initramfscfg"
+            execute.insert(execute.index(anchor), "shellprocess")
+
         return {
             # "local" resolve para <libdir>/calamares/modules, onde o Debian
             # instala os módulos (multiarch). Sem esta chave a lista fica vazia
@@ -338,7 +375,7 @@ class CalamaresInstaller(Installer):
             "instances": [],
             "sequence": [
                 {"show": adapt(SHOW_SEQUENCE)},
-                {"exec": adapt(EXEC_SEQUENCE)},
+                {"exec": execute},
             ],
             "branding": profile.hostname,
             "prompt-install": False,

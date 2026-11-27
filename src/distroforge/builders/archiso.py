@@ -18,6 +18,27 @@ from .base import Builder, BuildResult
 
 DEFAULT_IMAGE = "archlinux:latest"
 
+# Nameservers para o alvo. O squashfs traz o /etc/resolv.conf default do
+# systemd (só comentários) e o Calamares não copia o do host — sem isto o
+# `pacman -Sy` falha com código 1 dentro do chroot.
+LIVE_RESOLV_CONF = """\
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+"""
+
+# O pacman-mirrorlist (20260610) vem com TODOS os 425 servidores comentados
+# — quem instala é esperado escrever o próprio. O archinstall faz; o
+# mkarchiso não toca no arquivo. Com tudo comentado o `pacman -Sy` falha com
+# "no servers configured for repository" dentro do chroot do alvo e o job
+# `packages` do Calamares aborta a instalação inteira.
+# O build não cai nisso porque o Include resolve no container, que tem o
+# mirrorlist da imagem com servidores ativos.
+# geo.* redireciona para o mirror mais próximo; fastly é o fallback.
+MIRRORLIST = """\
+Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
+Server = https://fastly.mirror.pkgbuild.com/$repo/os/$arch
+"""
+
 PACKAGES = [
     "base",
     "linux",
@@ -45,6 +66,12 @@ PACKAGES = [
     "xorg-server",
     "xorg-xinit",
     "xterm",
+    # o módulo `users` do Calamares escreve /etc/sudoers e falha com
+    # "Cannot create sudoers file for writing." se o pacote não estiver lá —
+    # o job aborta e a instalação inteira cai em emergência. No Debian/Ubuntu
+    # o sudo entra por padrão no live; aqui é explícito. E o atalho
+    # "Instalar" do sistema instalado roda `sudo -E calamares`.
+    "sudo",
     # sem fontes o Calamares desenha, mas TODO o texto vira caixa vazia (tofu):
     # o Qt não acha nenhuma TTF e cai no .notdef. O Xorg avisa com
     # "The directory /usr/share/fonts/TTF does not exist".
@@ -315,6 +342,24 @@ class ArchisoBuilder(Builder):
         written.append(zoneinfo)
         # root com senha vazia (não travada) → o firstboot não pergunta.
         written.append(self._write(airootfs / "etc" / "shadow", "root::14871::::::\n"))
+
+        # O squashfs sai com o /etc/resolv.conf default do systemd — só
+        # comentários, nenhum nameserver. No live o NetworkManager reescreve
+        # em runtime, mas o alvo recebe o arquivo do squashfs: sem DNS o
+        # `pacman -Sy` do módulo packages falha com código 1 e a instalação
+        # aborta. O Calamares não copia o resolv.conf do host para o alvo.
+        # Pode ser symlink (systemd-resolved), então remove antes de escrever
+        # — write_text seguiria o link e falharia.
+        resolv = airootfs / "etc" / "resolv.conf"
+        if resolv.is_symlink() or resolv.exists():
+            resolv.unlink()
+        written.append(self._write(resolv, LIVE_RESOLV_CONF))
+
+        # Mesmo motivo do resolv.conf: o mirrorlist do pacote vem todo
+        # comentado e o alvo precisa de servidores para o `pacman -Sy`.
+        written.append(
+            self._write(airootfs / "etc" / "pacman.d" / "mirrorlist", MIRRORLIST)
+        )
 
         written.append(
             self._write(
