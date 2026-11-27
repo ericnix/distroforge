@@ -370,6 +370,74 @@ job. O comando foi escrito sem nenhum `$`.
 - **`/boot` vazio é invisível até o mkinitcpio.** Nenhum teste de
   geração pega isso; só rodar o instalador até o fim.
 
+### O install mostrava "Done" sem instalar nada
+
+Com o mirrorlist e o `/boot` resolvidos, o install chegou a **"Done 100%"**
+— e o sistema instalado **não tinha nenhum pacote escolhido**:
+
+```
+# pacman -Q plasma-meta kde-applications firefox git
+error: package 'plasma-meta' was not found
+error: package 'kde-applications' was not found
+error: package 'firefox' was not found
+error: package 'git' was not found
+```
+
+Duas causas, ambas confirmadas com comandos rodados **dentro do sistema
+instalado** (via `sendkey` do monitor do QEMU — o vncdotool não envia
+letras).
+
+**1. Keyring do pacman inexistente.** O `pacman-key --init` do
+`BUILD_SCRIPT` roda no **container**, então o squashfs sai **sem
+`/etc/pacman.d/gnupg`** (confirmado: o diretório tem só o `mirrorlist`).
+Sem keyring:
+
+```
+warning: Public keyring not found: have you run 'pacman-key --init'?
+error: required key missing from keyring
+error: failed to commit transaction
+```
+
+O `pacman -Sy` passa porque os DBs são `DatabaseOptional` — só os
+**pacotes** exigem assinatura. E o pior: o backend `pacman` do Calamares
+usa `target_env_process_output` em vez de `check_target_env_call`, que
+**não propaga** o `CalledProcessError` — por isso o install mostrou
+"Done" com zero pacotes instalados. O backend `apt` (validado no Ubuntu)
+usa `check_target_env_call` e teria falhado barulhentamente.
+
+Correção validada no próprio sistema instalado: sem keyring o
+`pacman -S htop` falha; depois de `pacman-key --init` +
+`--populate archlinux` ele instala normalmente.
+
+**2. `services-systemd` rodando antes do `packages`.** No Arch o display
+manager vem do netinstall (`plasma-meta` puxa `plasma-login-manager`) e
+os pacotes Arch **não se habilitam sozinhos** (o Debian/Ubuntu não tem
+esse problema: o postinst do `sddm` habilita a própria unit). Habilitar
+antes de instalar falha — e a falha é suprimida por a unit ser
+não-mandatória:
+
+```
+# systemctl is-enabled display-manager.service
+not-found
+# systemctl status plasmalogin
+Unit plasmalogin.service could not be found.
+```
+
+O `default.target` estava correto (`graphical.target`, que tem
+`Wants=display-manager.service`) — faltava só o symlink, que o
+`systemctl enable` não conseguiu criar.
+
+**Lições**:
+
+- **"Done" não é sucesso.** O backend `pacman` engole o erro do
+  `pacman -S`; só verificando o sistema instalado (`pacman -Q`) a falha
+  apareceu. Um teste que só olha a UI do instalador passaria.
+- **O build rodar no container não valida o alvo.** O `pacman-key --init`
+  funcionou perfeitamente no build — e continuou inexistente no alvo.
+- **A ordem dos jobs importa.** Instalar antes de habilitar é óbvio
+  escrito, mas a sequência veio do profile do Debian, onde o DM se
+  habilita sozinho.
+
 ### A rede tinha que estar no ar antes do X
 
 Com a fonte e os módulos certos, a página de boas-vindas apareceu com
