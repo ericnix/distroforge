@@ -424,6 +424,9 @@ def test_arch_copia_o_kernel_para_boot_antes_do_mkinitcpio(
     assert "/usr/lib/modules" in script
     assert "pacman-key --init" in script
     assert "pacman-key --populate" in script
+    # o mkarchiso apaga o sync db, e o update_db do packages é condicionado
+    # a `hasInternet` — rodamos o -Sy aqui, fora dessa dependência
+    assert "pacman -Sy" in script
     # sem `$`: o expander do shellprocess usa `$` como símbolo de macro
     assert "$" not in script
     # roda DENTRO do chroot do alvo (dontChroot: false é o default)

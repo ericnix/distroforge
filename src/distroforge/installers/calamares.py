@@ -67,18 +67,22 @@ EXEC_SEQUENCE = [
     "umount",
 ]
 
-# Dois preparos que o alvo precisa ANTES do job `packages`:
+# Três preparos que o alvo precisa ANTES do job `packages`:
 #
-# 1. keyring do pacman: o `pacman-key --init` do build roda no CONTAINER,
-#    então o squashfs sai sem /etc/pacman.d/gnupg. Sem ele o `pacman -S`
-#    morre em "required key missing from keyring" (testado no alvo: o
-#    `pacman -Sy` passa porque os DBs são DatabaseOptional, mas os pacotes
-#    exigem assinatura). Pior: o backend pacman usa
-#    target_env_process_output, que não propaga o erro — o Calamares
-#    mostra "Done" e nada é instalado.
-# 2. /boot: o mkarchiso apaga o /boot do airootfs antes do squashfs, então
-#    o alvo nasce sem /boot/vmlinuz-linux. O preset do mkinitcpio passa
-#    `-k /boot/vmlinuz-linux` e morre com "must be readable"; o
+# 1. sync db: o mkarchiso apaga /var/lib/pacman/sync (e o /boot) antes do
+#    squashfs, então o alvo nasce sem os DBs. Eles só seriam baixados pelo
+#    `update_db` do packages, que é condicionado a `hasInternet` — flag que
+#    o welcome grava uma única vez ao carregar a página. Com a flag false o
+#    `pacman -Sy` é simplesmente pulado e o `pacman -S` falha com "target
+#    found" (erro que o backend pacman engole). Rodamos o -Sy aqui, fora da
+#    dependência do hasInternet: sem rede o install aborta com erro visível
+#    em vez de mostrar "Done" sem instalar nada.
+# 2. keyring: o `pacman-key --init` do build roda no CONTAINER, então o
+#    squashfs sai sem /etc/pacman.d/gnupg. Sem ele o `pacman -S` morre em
+#    "required key missing from keyring" (o -Sy passa, porque os DBs são
+#    DatabaseOptional — só os pacotes exigem assinatura).
+# 3. /boot: o alvo nasce sem /boot/vmlinuz-linux. O preset do mkinitcpio
+#    passa `-k /boot/vmlinuz-linux` e morre com "must be readable"; o
 #    grub-mkconfig não acha nenhum kernel e não gera entrada de boot.
 #    O kernel está em /usr/lib/modules/<kver>/vmlinuz.
 #
@@ -95,6 +99,7 @@ SHELLPROCESS_BOOT = {
         "mkdir -p /boot && cp -f /usr/lib/modules/*/vmlinuz /boot/vmlinuz-linux",
         "pacman-key --init",
         "pacman-key --populate archlinux",
+        "pacman -Sy --noconfirm",
     ],
 }
 
