@@ -48,3 +48,48 @@ jobs:
           distroforge plan /tmp/profile.yaml
           distroforge generate /tmp/profile.yaml --out /tmp/build
           distroforge build /tmp/profile.yaml --out /tmp/out --dry-run
+
+  # Publica o site no Cloudflare Pages. Só roda se o token existir — sem ele
+  # o passo é pulado e o CI continua verde (a outra opção de deploy é a
+  # integração Git do painel do Cloudflare, descrita no README).
+  #
+  # O token vira env var de job porque `secrets` não é suportado direto em
+  # `if:`; o contexto `env` é.
+  deploy:
+    needs: site
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: site
+        run: npm ci
+
+      - name: Build
+        working-directory: site
+        run: npm run build
+
+      - name: Deploy no Cloudflare Pages
+        if: env.HAS_CLOUDFLARE_TOKEN == 'true'
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # --commit-dirty=true porque o job roda logo após o build; sem isso o
+        # wrangler recusa se o workspace não estiver limpo
+        run: npx wrangler pages deploy dist --project-name distroforge-site --commit-dirty=true
+
+      - name: Sem token — avisa
+        if: env.HAS_CLOUDFLARE_TOKEN != 'true'
+        run: echo "::notice::CLOUDFLARE_API_TOKEN não definido — deploy pulado. Configure em Settings → Secrets." 
