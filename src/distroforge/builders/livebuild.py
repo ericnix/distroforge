@@ -71,6 +71,48 @@ prompt 0
 timeout 50
 """
 
+# Template grub-pc/config.cfg do live-build (1:20250505), copiado aqui porque o
+# override em config/bootloaders/grub-pc/ SUBSTITUI o arquivo inteiro (cp -af),
+# e ele é o único lugar com `set default`. O original não tem `set timeout`: em
+# UEFI o menu do GRUB fica esperando Enter para sempre (o kernel nunca sobe —
+# verificado empiricamente com a ISO Ubuntu em OVMF). O isolinux do BIOS já
+# tinha timeout 50; aqui o GRUB conta em SEGUNDOS. O caminho EFI reusa este
+# mesmo arquivo (binary_grub-efi → binary_grub_cfg), então uma correção cobre
+# os dois bootloaders. Não contém markers (@...@), então os seds do
+# binary_grub_cfg não o afetam.
+BOOTLOADER_GRUB_CONFIG_CFG = """set default=0
+set timeout=5
+
+if [ x$feature_default_font_path = xy ] ; then
+    font=unicode
+else
+    font=$prefix/unicode.pf2
+fi
+
+# Copied from the netinst image
+if loadfont $font ; then
+    set gfxmode=800x600
+    set gfxpayload=keep
+    insmod efi_gop
+    insmod efi_uga
+    insmod video_bochs
+    insmod video_cirrus
+else
+    set gfxmode=auto
+    insmod all_video
+fi
+
+insmod gfxterm
+insmod png
+
+source /boot/grub/theme.cfg
+
+terminal_output gfxterm
+
+insmod play
+play 960 440 1 0 4 440 1
+"""
+
 UBUNTU_SOURCES = """\
 deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse
@@ -333,6 +375,15 @@ class LiveBuildBuilder(Builder):
             self._write(
                 workdir / "config" / "bootloaders" / "isolinux" / "isolinux.cfg",
                 BOOTLOADER_ISOLINUX_CFG,
+            )
+        )
+
+        # GRUB: cobre BIOS (grub-pc) e EFI (binary_grub-efi reusa o
+        # binary_grub_cfg). Sem isto o menu do UEFI não auto-boota.
+        written.append(
+            self._write(
+                workdir / "config" / "bootloaders" / "grub-pc" / "config.cfg",
+                BOOTLOADER_GRUB_CONFIG_CFG,
             )
         )
 

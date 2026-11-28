@@ -586,3 +586,65 @@ Já verificado:
 - `/arch/x86_64/airootfs.sfs` existe
 - o initramfs contém `hooks/archiso` (build log confirma todos os hooks)
 - `mkinitcpio-archiso` (não `archiso`) é o pacote que fornece os hooks
+
+## UEFI (critério §9.6)
+
+### O Arch boota em UEFI e o wizard aparece
+
+`uefi-test.sh` sobe a ISO em OVMF (`pflash` + VARS cópia gravável). O
+serial prova a cadeia inteira: menu do **systemd-boot** ("Minha Distro
+Arch 1.0 (UEFI)", contagem de 10s) → kernel → systemd → `login:` →
+autologin no tty1 → `Xorg :0 vt1` + `calamares` rodando (`pgrep`), com o
+Xorg segurando o `/dev/dri/card0` via mmap (`fuser`).
+
+A captura da tela passou por uma armadilha: o `read` de imagem do harness
+servia **arquivo errado por cache** (mostrava um tty onde havia o wizard),
+e por isso a conclusão inicial foi "o X roda mas a tela fica no console".
+A análise programática com PIL desfez: a assinatura luminosa das capturas
+UEFI está a **9.2 de distância** da captura do wizard em BIOS (97% dos
+pixels iguais; a diferença se concentra em linhas de texto da página) e a
+120+ de qualquer console. **O wizard é renderizado em UEFI.**
+
+### Bug: Debian/Ubuntu não auto-bootavam em UEFI
+
+A ISO Ubuntu em OVMF ficava **parada no menu do GRUB para sempre** — o
+serial só recebia linhas do firmware e o kernel nunca subia. Enter no
+menu fazia boot normal (o Calamares até rodou, provando que o resto da
+cadeia estava bem).
+
+Causa: o template `grub-pc/config.cfg` do live-build **não tem
+`set timeout`**, e o `lb config` não expõe opção para isso. O isolinux do
+BIOS já tinha `timeout 50` (corrigido na fase 0), mas o caminho EFI
+passava pelo GRUB.
+
+Correção: `BOOTLOADER_GRUB_CONFIG_CFG` em `livebuild.py` — cópia do
+template do live-build (1:20250505) com `set timeout=5`, escrita em
+`config/bootloaders/grub-pc/config.cfg` (o override que o
+`binary_grub_cfg` aplica com `cp -af` **tanto para grub-pc quanto para
+grub-efi**, já que o `binary_grub-efi` reusa o mesmo script). Sem markers
+`@...@`, então os seds do live-build não o afetam. Teste de regressão em
+`test_gera_arvore_live_build`.
+
+### Secure Boot: a ISO Ubuntu passa; o par OVMF secboot exige `-machine q35`
+
+Dois achados, um do host e outro nosso:
+
+1. **Host**: `OVMF_CODE.secboot.fd` + `OVMF_VARS.secboot.fd` (Fedora,
+   edk2) **não inicializam na máquina `pc` (i440fx, default do QEMU)** —
+   nem serial nem display ("Guest has not initialized the display (yet)").
+   Com `-machine q35` o mesmo par imprime `BdsDxe:` normalmente. O OVMF
+   comum (sem secboot) funciona nas duas máquinas. Teste mínimo
+   reproduzido sem mídia alguma: o problema é do firmware, não da ISO.
+
+2. **ISO**: com q35 + secboot, a Ubuntu antiga (sem `set timeout`) fica no
+   menu do GRUB, Enter resolve, e a cadeia completa sobe:
+   **shim → GRUB → kernel → systemd → Calamares**. Evidência no serial
+   (`Calamares::RequirementsChecker` rodando) e na tela (t55/t115 a 12.5
+   de distância do wizard em BIOS). O `bootx64.efi` da ISO é shim de
+   verdade (strings `rhboot/shim`), porque o `binary_grub-efi` do
+   live-build detecta `shim-signed` + `grub-efi-amd64-signed` no chroot —
+   ambos estão na nossa `LIVE_PACKAGES`.
+
+O script `df-poc/secureboot-test.sh` já usa `-machine q35`. O Arch não
+tem shim assinado nos repos oficiais, então Secure Boot não é esperado
+para a ISO Arch (o teste dele deve falhar com "Security Violation").

@@ -52,6 +52,14 @@ def test_gera_arvore_live_build(tmp_path, orchestrator: Orchestrator, profile: P
     )
     assert "timeout 50" in menu
 
+    # sem set timeout o GRUB (UEFI) espera Enter para sempre — o template do
+    # live-build não tem; ver tests e docs/FASE3.md
+    grub = (root / "config" / "bootloaders" / "grub-pc" / "config.cfg").read_text(
+        encoding="utf-8"
+    )
+    assert "set timeout=5" in grub
+    assert "set default=0" in grub
+
 
 def test_settings_do_calamares(tmp_path, orchestrator: Orchestrator, profile: Profile):
     root = orchestrator.generate(profile, tmp_path).workdir
