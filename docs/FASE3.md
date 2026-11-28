@@ -625,6 +625,14 @@ grub-efi**, já que o `binary_grub-efi` reusa o mesmo script). Sem markers
 `@...@`, então os seds do live-build não o afetam. Teste de regressão em
 `test_gera_arvore_live_build`.
 
+**Validação**: ISO Ubuntu reconstruída e bootada em UEFI **sem nenhum
+Enter** (o script nem tem `keyPress`). As capturas progridem sozinhas —
+t8/t15 no menu do GRUB (dist 14.3 da referência do menu parado), t25 já
+no wizard (dist 10.2) e t40+ estabilizado (dist 12.5 do wizard em BIOS).
+O serial confirma o boot contínuo: `systemd ... Startup finished` →
+Calamares escaneando discos. A ISO antiga (sem timeout) ficaria parada
+em t8 até o fim.
+
 ### Secure Boot: a ISO Ubuntu passa; o par OVMF secboot exige `-machine q35`
 
 Dois achados, um do host e outro nosso:
@@ -648,3 +656,46 @@ Dois achados, um do host e outro nosso:
 O script `df-poc/secureboot-test.sh` já usa `-machine q35`. O Arch não
 tem shim assinado nos repos oficiais, então Secure Boot não é esperado
 para a ISO Arch (o teste dele deve falhar com "Security Violation").
+
+## Wi-Fi no live (critério §9.6)
+
+QEMU não emula rádio Wi-Fi, então o teste usa **`mac80211_hwsim`** (rádios
+virtuais que o kernel já traz) — cobre o stack de software inteiro: driver →
+firmware → NetworkManager → scan → associação → tráfego. O firmware dos
+rádios reais é verificado à parte (pacotes no squashfs).
+
+Resultado com a ISO Arch (`wifi-test2.sh`):
+
+- `linux-firmware 20261124-1` presente, com `iwlwifi-*` e `rtlwifi/*` em
+  `/lib/firmware` (Intel e Realtek cobertos);
+- `modprobe mac80211_hwsim` cria `wlan0`/`wlan1`; o NM os enxerga
+  (`nmcli device` lista os dois, `WIFI enabled`);
+- **AP manual no wlan1** (`10.0.0.1/24`) + **cliente no wlan0**
+  (`10.0.0.2/24`): `nmcli connection up` faz scan + handshake e os dois
+  ficam `connected`;
+- **`ping 10.0.0.1`: 3/3 recebidos, 0% de perda.**
+
+Por que IP manual nos dois lados: o hotspot do NM (`ipv4.method=shared`)
+precisa de **dnsmasq**, que não está no live — no Ubuntu porque o build usa
+`--no-install-recommends` (o `dnsmasq-base` é só *Recommends* do
+network-manager) e no Arch porque pacman não instala recommends. O critério
+é conexão **cliente** (firmware + nmtui), que não depende dele; o journal
+do NM confirma a causa raiz (`could not start dnsmasq: Could not find
+"dnsmasq" binary`). Se quisermos hotspot no live, é `dnsmasq` explícito
+nos pacotes da base — decisão para a fase 4.
+
+## apt update/upgrade no sistema instalado (critério §9.6)
+
+Feito no Ubuntu instalado (`ubu-full.qcow2`). O caminho GUI (Konsole via
+QMP `sendkey`) **não executou nada** — `history.log` e `term.log` do disco
+lidos com `debugfs` não tinham nenhuma entrada de nov/28. A prova final
+veio por outro caminho: `qemu-img convert` + `dd` da partição + `debugfs`
+para extrair `/boot/vmlinuz-*` e `initrd.img-*`, e depois bootar o próprio
+disco com `-kernel`/`-initrd` e `console=ttyS0` — login, sudo e saída do
+apt íntegros pelo serial (`apt-serial-test.sh` + `apt-serial-run.py`),
+sem OCR e sem sendkey.
+
+**Lições**: (1) GUI automatizada por sendkey é frágil — sempre confirmar
+a execução por uma fonte independente (log no disco, serial); (2) `debugfs`
+sobre a partição extraída é o jeito rápido de auditar um disco instalado
+sem root e sem montar nada.
